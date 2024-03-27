@@ -15,15 +15,6 @@ var host = new HostBuilder()
         {
             return new DataLayer();
         });
-        services.AddSingleton<IConfiguration>((s) =>
-        {
-            var config = new ConfigurationBuilder()
-                .SetBasePath(Environment.CurrentDirectory)
-                .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build();
-            return config;
-        });
     })
     .Build();
 
