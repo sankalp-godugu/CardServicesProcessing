@@ -8,6 +8,7 @@ IHost host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureServices(services =>
     {
+        _ = services.AddMemoryCache();
         _ = services.AddApplicationInsightsTelemetryWorkerService();
         _ = services.ConfigureFunctionsApplicationInsights();
         _ = services.AddSingleton<IDataLayer>((s) =>

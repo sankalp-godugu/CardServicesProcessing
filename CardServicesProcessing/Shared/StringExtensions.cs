@@ -9,6 +9,9 @@ namespace CardServicesProcessor.Utilities.Constants
 {
     public static partial class StringExtensions
     {
+        [GeneratedRegex(@"\d")]
+        private static partial Regex StripNumbersRegex();
+
         public static bool ContainsAny(this string source, params string[] values)
         {
             return values.Any(value => source.Contains(value, StringComparison.OrdinalIgnoreCase));
@@ -35,12 +38,9 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static decimal? ParseAmount(this string amount, string columnName)
         {
-            if (string.IsNullOrEmpty(columnName))
-            {
-                return null;
-            }
-
-            return string.IsNullOrWhiteSpace(amount) ? null : decimal.TryParse(amount, out decimal result) ? result : null;
+            return string.IsNullOrEmpty(columnName)
+                ? null
+                : string.IsNullOrWhiteSpace(amount) ? null : decimal.TryParse(amount, out decimal result) ? result : null;
         }
 
         public static bool IsNA(this string value)
@@ -57,7 +57,7 @@ namespace CardServicesProcessor.Utilities.Constants
                         : DateTime.TryParse(value, out DateTime date)
                     ? date.ToShortDateString()
                         : value,
-                (ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount)
+                ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount
                     => string.IsNullOrWhiteSpace(value) || dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
                         : decimal.TryParse(value, out decimal amount)
                     ? amount.ToString("C2")
@@ -120,17 +120,14 @@ namespace CardServicesProcessor.Utilities.Constants
             }
         }
 
-        public static string StripNumbers(this string input)
+        public static string StripNumbers(this string? input)
         {
-            return StripNumbersRegex().Replace(input, "");
+            return !string.IsNullOrWhiteSpace(input) ? StripNumbersRegex().Replace(input, "") : "";
         }
 
-        public static bool ContainsNumbers(this string input)
+        public static bool ContainsNumbers(this string? input)
         {
             return !string.IsNullOrEmpty(input) && input.All(char.IsDigit);
         }
-
-        [GeneratedRegex(@"\d")]
-        private static partial Regex StripNumbersRegex();
     }
 }

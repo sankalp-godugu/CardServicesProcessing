@@ -1,9 +1,12 @@
 ﻿using CardServicesProcessor.DataAccess.Interfaces;
+using CardServicesProcessor.Models.Response;
+using CardServicesProcessor.Shared;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Reflection;
+using static Dapper.SqlMapper;
 
 namespace CardServicesProcessor.DataAccess.Services
 {
@@ -71,6 +74,43 @@ namespace CardServicesProcessor.DataAccess.Services
                 Console.WriteLine($"Error executing SQL query: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultiple(string connectionString)
+        {
+            using SqlConnection connection = new(connectionString);
+
+            DynamicParameters parameters = new();
+            parameters.Add("@ApprovedStatus", "Approved");
+            DateTime fromDateTime = DateTime.Today.AddDays(-7);
+            parameters.Add("@FromDate", fromDateTime, DbType.DateTime);
+
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, parameters);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTableReimbursementFinal);
+            await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal);
+
+            // Execute the query and retrieve multiple result sets
+            using GridReader reader = await connection.QueryMultipleAsync($"{SqlConstantsCheckIssuance.SelectRawData}{SqlConstantsCheckIssuance.SelectMemberMailingInfo}{SqlConstantsCheckIssuance.SelectMemberCheckReimbursement}", commandTimeout: 0);
+
+            // Retrieve the first result set
+            IEnumerable<RawData> rawData = reader.Read<RawData>();
+
+            // Retrieve the second result set
+            IEnumerable<MemberMailingInfo> memberMailingInfo = reader.Read<MemberMailingInfo>();
+
+            // Retrieve the third result set
+            IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = reader.Read<MemberCheckReimbursement>();
+
+            return (rawData, memberMailingInfo, memberCheckReimbursements);
         }
 
         #region Private Methods

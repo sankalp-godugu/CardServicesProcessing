@@ -1,17 +1,23 @@
 using CardServicesProcessor.DataAccess.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace CardServicesProcessor
 {
-    public class Functions(IConfiguration configuration, IDataLayer dataLayer, ILogger<Functions> logger)
+    public class Functions(IConfiguration configuration, IDataLayer dataLayer, ILogger<Functions> logger, IMemoryCache cache)
     {
-        [Function("CasesProcessor")]
-        public async Task Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req)
+        [Function("CardServicesReportProcessor")]
+        public async Task GenerateCardServicesReport([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
         {
-            _ = await CaseProcessor.ProcessCases(configuration, dataLayer, logger);
+            //_ = await CaseProcessor.ProcessAllCases(configuration, dataLayer, logger, cache);
+        }
+
+        [Function("CheckIssuanceProcessor")]
+        public async Task GenerateReimbursementCheckIssuance([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
+        {
+            _ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger, cache);
         }
     }
 }

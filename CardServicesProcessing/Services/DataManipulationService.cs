@@ -7,8 +7,14 @@ using System.Text.RegularExpressions;
 
 namespace CardServicesProcessor.Services
 {
-    public static partial class DataService
+    public static partial class DataManipulationService
     {
+        [GeneratedRegex(@"\$(\d+(?:\.\d{1,2})?)")]
+        private static partial Regex ApprovedAmountRegex();
+
+        [GeneratedRegex(@"\b(\d+(?:\.\d{1,2})?)\b")]
+        private static partial Regex ApprovedAmountWithoutDollarSignRegex();
+
         public static DataTable ValidateCases(IEnumerable<CardServicesResponse> cssCases)
         {
             DataTable dt = new();
@@ -16,7 +22,6 @@ namespace CardServicesProcessor.Services
 
             foreach (CardServicesResponse cssCase in cssCases)
             {
-
                 // Use the first row to add columns to DataTable
                 if (firstRow)
                 {
@@ -204,7 +209,7 @@ namespace CardServicesProcessor.Services
                         dataRow.FormatForExcel(ColumnNames.ProcessedDate, processedDate?.ToShortDateString());
                         dataRow.FormatForExcel(ColumnNames.ClosingComments, closingComments);
 
-                        dataRow.FillOutlierData(caseTicketNbr, wallet, requestedTotalAmount);
+                        dataRow.FillOutlierData(caseTicketNbr, requestedTotalAmount);
 
                         dt.Rows.Add(dataRow);
                     }
@@ -216,7 +221,7 @@ namespace CardServicesProcessor.Services
                 }
             }
 
-            return dt;  
+            return dt;
         }
 
         public static DataTable? ReadPrevYTDExcelToDataTable(string filePath, string sheetName)
@@ -229,7 +234,7 @@ namespace CardServicesProcessor.Services
             // Open the Excel file
             using XLWorkbook workbook = new(filePath);
 
-            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out var worksheet);
+            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet? worksheet);
 
             if (!worksheetExists)
             {
@@ -274,11 +279,5 @@ namespace CardServicesProcessor.Services
 
             return dataTable;
         }
-
-        [GeneratedRegex(@"\$(\d+(?:\.\d{1,2})?)")]
-        private static partial Regex ApprovedAmountRegex();
-
-        [GeneratedRegex(@"\b(\d+(?:\.\d{1,2})?)\b")]
-        private static partial Regex ApprovedAmountWithoutDollarSignRegex();
     }
 }

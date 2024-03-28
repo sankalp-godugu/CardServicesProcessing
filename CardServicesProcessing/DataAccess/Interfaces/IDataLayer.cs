@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CardServicesProcessor.Models.Response;
+using Microsoft.Extensions.Logging;
+using System.Data;
 
 namespace CardServicesProcessor.DataAccess.Interfaces
 {
@@ -7,5 +9,6 @@ namespace CardServicesProcessor.DataAccess.Interfaces
     {
         public Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger logger);
         public Task<IEnumerable<T>> QueryAsync<T>(string query, string connectionString, object? parameters = null);
+        public Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultiple(string connectionString);
     }
 }

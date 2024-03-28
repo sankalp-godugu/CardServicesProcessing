@@ -3,32 +3,53 @@ using CardServicesProcessor.Models.Response;
 using CardServicesProcessor.Services;
 using CardServicesProcessor.Shared;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Diagnostics;
 
 namespace CardServicesProcessor
 {
     public static class CaseProcessor
     {
-        public static async Task<IActionResult> ProcessCases(IConfiguration config, IDataLayer dataLayer, ILogger log)
+        public static async Task<IActionResult> ProcessAllCases(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache)
         {
             try
             {
                 await Task.Run(async () =>
                 {
                     log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-                    log.LogInformation("********* Member PD Orders => Genesys Contact List Execution Started **********");
 
-                    string elvConn = config["ElevanceProdConn"] ?? Environment.GetEnvironmentVariable("ElevanceProdConn");
-                    string nationsConn = config["NationsProdConn"] ?? Environment.GetEnvironmentVariable("NationsProdConn");
+                    List<ReportInfo> reportSettings =
+                    [
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Elevance.SheetName,
+                            SheetPrev = CardServicesConstants.Elevance.SheetPrev,
+                            SheetRaw = CardServicesConstants.Elevance.SheetRaw,
+                            SheetDraft = CardServicesConstants.Elevance.SheetDraft,
+                            SheetFinal = CardServicesConstants.Elevance.SheetFinal,
+                            SheetDraftIndex = CardServicesConstants.Elevance.SheetDraftIndex
+                        },
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Nations.SheetName,
+                            SheetPrev = CardServicesConstants.Nations.SheetPrev,
+                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
+                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
+                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
+                            SheetDraftIndex = CardServicesConstants.Nations.SheetDraftIndex
+                        }
+                    ];
 
-                    // 1. Execute query to get all cases
-                    await ProcessReport(elvConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Elevance.SheetPrev, FileConstants.Elevance.SheetDraft, 2);
-                    await ProcessReport(nationsConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Nations.SheetPrev, FileConstants.Nations.SheetDraft, 5);
+                    await ProcessReports(config, dataLayer, log, cache, reportSettings);
 
                     log.LogInformation("Opening the Excel file...");
-                    ExcelService.OpenExcel(FileConstants.CurrReportFilePath);
+                    Stopwatch sw = Stopwatch.StartNew();
+                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
+                    sw.Stop();
+                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -40,32 +61,75 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReport(string conn, IDataLayer dataLayer, IConfiguration config, ILogger log, string reportFilePath, string sheetPrev, string sheetDraft, int pos)
+        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache, List<ReportInfo> reportSettings)
         {
-            string manualAdjustmentsSrcFilePath =
-                    //@"https://nationshearingllc-my.sharepoint.com/:x:/g/personal/mtapia_nationsbenefits_com/EZay0mCSlPVMrYknu4tMSyQBPJQQq0pjGnOeR45l5R07fw?e=9a6N0x&wdOrigin=TEAMS-MAGLEV.undefined_ns.rwc&wdExp=TEAMS-TREATMENT&wdhostclicktime=1710943414625&web=1";
-            @"C:\Users\Sankalp.Godugu\Downloads\Manual Adjustments 2023.xlsx";
-            string[] sheets = ["2023 Reimbursements-completed", "2023 Reimbursements-working"];
+            foreach (ReportInfo settings in reportSettings)
+            {
+                Stopwatch sw = new();
 
-            bool isElv = sheetPrev.Contains("Elevance");
+                log.LogInformation($"Processing data for: {settings.SheetName}...");
+                string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-            log.LogInformation("Executing query...");
-            IEnumerable<CardServicesResponse> response = await dataLayer.QueryAsync<CardServicesResponse>(SQLConstants.Query, conn);
+                log.LogInformation("Getting all cases...");
+                sw.Start();
+                // Check if data exists in cache
+                if (!cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
+                {
+                    // Data not found in cache, fetch from source and store in cache
+                    response = await dataLayer.QueryAsync<CardServicesResponse>(SQLConstants.CardServicesQuery, conn);
+                    _ = cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
+                }
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
 
-            log.LogInformation("Processing missing/invalid data...");
-            DataTable tblCurr = DataService.ValidateCases(response);
+                log.LogInformation("Processing missing/invalid data...");
+                sw.Restart();
+                DataTable tblCurr = DataManipulationService.ValidateCases(response);
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
 
-            log.LogInformation("Reading data from last report sent to Elevance...");
-            DataTable? tblPrev = DataService.ReadPrevYTDExcelToDataTable(FileConstants.FilePathPrev, sheetPrev);
+                log.LogInformation("Reading data from last report sent to Elevance...");
+                sw.Restart();
+                DataTable? tblPrev = DataManipulationService.ReadPrevYTDExcelToDataTable(CardServicesConstants.FilePathPrev, settings.SheetPrev);
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
 
-            log.LogInformation("Populating missing data from previous 2024 report...");
-            DataTable tblFinal = ExcelService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
+                log.LogInformation("Populating missing data from previous 2024 report...");
+                sw.Restart();
+                DataTable tblFinal = ExcelService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
 
-            log.LogInformation("Populating missing wallets from Manual Reimbursements 2023 Report...");
-            ExcelService.FillMissingWallet(manualAdjustmentsSrcFilePath, tblFinal);
+                log.LogInformation("Populating missing wallets from Manual Reimbursements 2023 Report...");
+                sw.Restart();
+                ExcelService.FillMissingWallet(settings.ManualAdjustmentsSrcFilePath, tblFinal);
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
 
-            log.LogInformation("Writing to Excel and applying filters...");
-            ExcelService.ApplyFiltersAndSaveReport(tblFinal, reportFilePath, sheetDraft, pos);
+                log.LogInformation("Writing to Excel and applying filters...");
+                sw.Restart();
+                ExcelService.ApplyFiltersAndSaveReport(tblFinal, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
+                sw.Stop();
+                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+            }
+        }
+
+        private static string GetConnectionString(IConfiguration config, string key)
+        {
+            string defaultConn = "Data Source=tcp:nbappproddr.database.windows.net;Initial Catalog=NBAPP_PROD;Authentication=Active Directory Interactive;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadOnly;MultiSubnetFailover=False;MultipleActiveResultSets=true";
+
+            return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
+        }
+
+        private class ReportInfo
+        {
+            public required string SheetName { get; set; }
+            public required string SheetPrev { get; set; }
+            public required string SheetRaw { get; set; }
+            public required string SheetDraft { get; set; }
+            public required string SheetFinal { get; set; }
+            public int SheetDraftIndex { get; set; }
+            public string ManualAdjustmentsSrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\Downloads\Manual Adjustments 2023.xlsx";
         }
     }
 }

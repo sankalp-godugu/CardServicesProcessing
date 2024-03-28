@@ -1,4 +1,5 @@
-﻿using CardServicesProcessor.Shared;
+﻿using CardServicesProcessor.Models.Response;
+using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
 using System.Data;
@@ -65,7 +66,6 @@ namespace CardServicesProcessor.Services
                     }
                 }
             }
-
             return dataTable;
         }
 
@@ -89,14 +89,14 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void FillMissingWallet(string excelLink, DataTable dt)
+        public static void FillMissingWallet(string excelLink, DataTable dataTable)
         {
             // Load data from the second Excel file
             DataTable tblManualReimbursements = ReadSecondExcelData(excelLink);
 
-            foreach (DataRow row in dt.Rows)
+            foreach (DataRow row in dataTable.Rows)
             {
-                string caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString().Trim();
+                string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString()?.Trim();
 
                 if (string.IsNullOrWhiteSpace(caseTicketNumber))
                 {
@@ -111,12 +111,17 @@ namespace CardServicesProcessor.Services
 
                 if (matchingRows.Length > 0)
                 {
-                    string benefitWallet = matchingRows[0][ColumnNames.BenefitWallet].ToString().Trim();
+                    string? benefitWallet = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
+
+                    if (benefitWallet is null)
+                    {
+                        continue;
+                    }
 
                     // Handle empty "Case Closed Date" cell
                     if (benefitWallet.ContainsNumbers())
                     {
-                        benefitWallet = matchingRows[0][ColumnNames.CaseClosedDate].ToString().Trim();
+                        benefitWallet = matchingRows[0][ColumnNames.CaseClosedDate].ToString()?.Trim();
                     }
 
                     benefitWallet = benefitWallet.StripNumbers();
@@ -144,7 +149,7 @@ namespace CardServicesProcessor.Services
             // At this point, the "Wallet" column in your first datatable should be updated with the mapped benefit descriptions
         }
 
-        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, string? wallet, decimal? requestedTotalAmount)
+        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? requestedTotalAmount)
         {
             if (string.IsNullOrWhiteSpace(caseTicketNumber))
             {
@@ -173,113 +178,30 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.CaseStatus, "Closed");
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
                     break;
-            }
-
-            // Handle WALLET
-            if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400067263-1",
-                "EHCM202400066272-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ActiveFitness);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400068961-1",
-                "EHCM202400070137-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.AssistiveDevices);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400070711-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400069504-1",
-                "EHCM202400069623-1",
-                "EHCM202400069818-1",
-                "EHCM202400065264-1",
-                "EHCM202400062994-1",
-                "EHCM202400070836-1",
-                "EHCM202400070820-1",
-                "EHCM202400070892-1",
-                "EHCM202400070908-1",
-                "EHCM202400071226-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400064404-1",
-                "EHCM202400066581-1",
-                "EHCM202400069229-1",
-                "EHCM202400070780-1",
-                "EHCM202400070880-1",
-                "EHCM202400070832-1",
-                "EHCM202400070860-1",
-                "EHCM202400070984-1",
-                "EHCM202400070801-1",
-                "EHCM202400063415-1",
-                "EHCM202400066888-1",
-                "EHCM202400070736-1",
-                "EHCM202400070754-1",
-                "EHCM202400070715-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
-            }
-            else if (caseTicketNumber.Contains("EHCM202400071155-1"))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ServiceDog);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400063018-1",
-                "EHCM202400065349-1",
-                "EHCM202400063182-1",
-                "EHCM202400070873-1",
-                "EHCM202400070955-1",
-                "EHCM202400070803-1",
-                "EHCM202400070761-1",
-                "EHCM202400070772-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400070738-1",
-                "EHCM202400070768-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
-            }
-
-            // Handle DENIAL REASON
-            if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400070290-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.DenialReason, "Ineligible Retailer (not allowed)");
-                dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
-                dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
-            }
-            else if (caseTicketNumber.ContainsAny(
-            [
-                "EHCM202400068493-1"
-            ]))
-            {
-                dataRow.FormatForExcel(ColumnNames.DenialReason, "Not a Reimbursement");
-                dataRow.FormatForExcel(ColumnNames.CaseStatus, "Closed");
-                dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
+                case "EHCM202400063018-1" or "EHCM202400065349-1" or "EHCM202400063182-1" or "EHCM202400070873-1" or "EHCM202400070955-1" or "EHCM202400070803-1" or "EHCM202400070761-1" or "EHCM202400070772-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
+                    break;
+                case "EHCM202400067263-1" or "EHCM202400066272-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ActiveFitness);
+                    break;
+                case "EHCM202400068961-1" or "EHCM202400070137-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.AssistiveDevices);
+                    break;
+                case "EHCM202400070711-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
+                    break;
+                case "EHCM202400069504-1" or "EHCM202400069623-1" or "EHCM202400069818-1" or "EHCM202400065264-1" or "EHCM202400062994-1" or "EHCM202400070836-1" or "EHCM202400070820-1" or "EHCM202400070892-1" or "EHCM202400070908-1" or "EHCM202400071226-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
+                    break;
+                case "EHCM202400064404-1" or "EHCM202400066581-1" or "EHCM202400069229-1" or "EHCM202400070780-1" or "EHCM202400070880-1" or "EHCM202400070832-1" or "EHCM202400070860-1" or "EHCM202400070984-1" or "EHCM202400070801-1" or "EHCM202400063415-1" or "EHCM202400066888-1" or "EHCM202400070736-1" or "EHCM202400070754-1" or "EHCM202400070715-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
+                    break;
+                case "EHCM202400071155-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ServiceDog);
+                    break;
+                case "EHCM202400070738-1" or "EHCM202400070768-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
+                    break;
             }
         }
 
@@ -299,14 +221,19 @@ namespace CardServicesProcessor.Services
             // Iterate over the rows of tblCurr
             foreach (DataRow row in tblCurr.Rows)
             {
-                string caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString();
+                string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString() ?? "";
+
+                if (caseTicketNumber == null)
+                {
+                    continue;
+                }
 
                 // Check if the Wallet value is missing
                 string? wallet = row[ColumnNames.Wallet].ToString();
                 if (string.IsNullOrWhiteSpace(wallet) || wallet.Trim() == "NULL")
                 {
                     // Find the corresponding row in tblPrev based on the case number
-                    DataRow matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
+                    DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
 
                     // If a matching row is found, fill in the missing Wallet value
                     if (matchingRow != null)
@@ -328,7 +255,7 @@ namespace CardServicesProcessor.Services
                 if (string.IsNullOrWhiteSpace(caseStatus) || caseStatus.ToString().Trim().ContainsAny([Statuses.InReview, Statuses.New, Statuses.Failed]))
                 {
                     // Find the corresponding row in tblPrev based on the case number
-                    DataRow matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
+                    DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
 
                     // If a matching row is found, update the case status and related fields
                     if (matchingRow != null)
@@ -461,6 +388,79 @@ namespace CardServicesProcessor.Services
                 // Handle the case where the specified sheet doesn't exist
                 Console.WriteLine($"Error: {ex.Message}");
             }*/
+        }
+
+        public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
+        {
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                _ = Directory.CreateDirectory(directoryPath);
+            }
+
+            XLWorkbook workbook;
+            if (File.Exists(filePath))
+            {
+                workbook = new XLWorkbook(filePath);
+            }
+            else
+            {
+                workbook = new XLWorkbook();
+            }
+
+            // Add or update data in the existing sheets
+            AddDataToSheet(data.Item1, workbook, CheckIssuanceConstants.Sheets[1]); // Start from row 2 for existing data
+            AddDataToSheet(data.Item2, workbook, CheckIssuanceConstants.Sheets[2]);
+            AddDataToSheet(data.Item3, workbook, CheckIssuanceConstants.Sheets[3]);
+
+            // Save the workbook
+            workbook.SaveAs(filePath);
+        }
+
+        private static void AddDataToSheet<T>(IEnumerable<T> data, XLWorkbook workbook, string sheetName)
+        {
+            DataTable dt = data.ToDataTable();
+
+            // Get the worksheet by name
+            bool worksheetExists = workbook.TryGetWorksheet(sheetName, out var worksheet);
+
+            if (!worksheetExists)
+            {
+                worksheet = workbook.Worksheets.Add(sheetName);
+            }
+
+            // Find the first empty row in the worksheet
+            int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
+
+            // Insert the data into the worksheet starting from the next empty row
+            worksheet.Cell(startRow, 1).InsertTable(dt);
+        }
+
+        private static DataTable ToDataTable<T>(this IEnumerable<T> items)
+        {
+            DataTable dataTable = new(typeof(T).Name);
+
+            // Get all public properties of the type T
+            var properties = typeof(T).GetProperties();
+
+            // Create the columns in the DataTable based on the properties of T
+            foreach (var prop in properties)
+            {
+                dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+            }
+
+            // Populate the DataTable with the data from the IEnumerable<T>
+            foreach (var item in items)
+            {
+                DataRow row = dataTable.NewRow();
+                foreach (var prop in properties)
+                {
+                    row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+                }
+                dataTable.Rows.Add(row);
+            }
+
+            return dataTable;
         }
     }
 }
