@@ -1,13 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using CardServicesProcessor.Shared;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using ReimbursementReporting.Shared;
-using System;
 using System.Data;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace ReimbursementReporting.Utilities.Constants
+namespace CardServicesProcessor.Utilities.Constants
 {
     public static partial class StringExtensions
     {
@@ -16,18 +14,8 @@ namespace ReimbursementReporting.Utilities.Constants
             return values.Any(value => source.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
 
-        public static string FormatForCode(this DataRow dataRow, string colName)
+        public static DateTime? ParseAndConvertDateTime(this string utcDateTimeString, string columnName)
         {
-            ArgumentNullException.ThrowIfNull(dataRow);
-
-            string value = dataRow[colName]?.ToString()?.Trim();
-            return value.IsNA() ? null : value;
-        }
-
-        public static DateTime? ParseAndConvertDate(this DataRow dataRow, string columnName)
-        {
-            string utcDateTimeString = dataRow[columnName].ToString();
-
             if (DateTime.TryParse(utcDateTimeString, out DateTime utcDateTime))
             {
                 // Get the Eastern Standard Time (EST) time zone
@@ -52,7 +40,7 @@ namespace ReimbursementReporting.Utilities.Constants
                 return null;
             }
 
-            string valueAsString = dataRow[columnName]?.ToString();
+            string? valueAsString = dataRow[columnName]?.ToString();
             return string.IsNullOrWhiteSpace(valueAsString) ? null : decimal.TryParse(valueAsString, out decimal result) ? result : null;
         }
 
@@ -61,7 +49,7 @@ namespace ReimbursementReporting.Utilities.Constants
             return string.IsNullOrWhiteSpace(value) || value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
         }
 
-        public static void FormatToExcel(this DataRow dataRow, string columnName, string value)
+        public static void FormatForExcel(this DataRow dataRow, string columnName, string? value)
         {
             dataRow[columnName] = columnName switch
             {
@@ -70,11 +58,11 @@ namespace ReimbursementReporting.Utilities.Constants
                         : DateTime.TryParse(value, out DateTime date)
                     ? date.ToShortDateString()
                         : value,
-                ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount
-                    => string.IsNullOrWhiteSpace(value) ? "NULL"
+                (ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount)
+                    => dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
                         : decimal.TryParse(value, out decimal amount)
                     ? amount.ToString("C2")
-                        : value,
+                        : 0,
                 _ => string.IsNullOrWhiteSpace(value) ? "NULL" : value,
             };
         }
@@ -107,7 +95,7 @@ namespace ReimbursementReporting.Utilities.Constants
             return estDate.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
         }
 
-        public static string GetJsonValue(this string jsonString, string propertyName)
+        public static string? GetJsonValue(this string jsonString, string propertyName)
         {
             try
             {

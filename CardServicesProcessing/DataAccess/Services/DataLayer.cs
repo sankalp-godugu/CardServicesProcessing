@@ -1,15 +1,11 @@
-﻿using Dapper;
+﻿using CardServicesProcessor.DataAccess.Interfaces;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using ReimbursementReporting.DataAccess.Interfaces;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
-namespace ReimbursementReporting.DataAccess.Services
+namespace CardServicesProcessor.DataAccess.Services
 {
     /// <summary>
     /// Data Layer.
@@ -27,7 +23,7 @@ namespace ReimbursementReporting.DataAccess.Services
         public async Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger logger)
         {
             logger.LogInformation($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
-            List<T> list = new();
+            List<T> list = [];
             using (SqlConnection sqlConnection = new(connectionString))
             {
                 await sqlConnection.OpenAsync();
@@ -41,7 +37,7 @@ namespace ReimbursementReporting.DataAccess.Services
 
                     if (parameters.Count > 0)
                     {
-                        sqlCommand.Parameters.AddRange(GetSqlParameters(parameters).ToArray());
+                        sqlCommand.Parameters.AddRange([.. GetSqlParameters(parameters)]);
                     }
                     SqlDataReader dataReader = await sqlCommand.ExecuteReaderAsync();
 
@@ -60,9 +56,9 @@ namespace ReimbursementReporting.DataAccess.Services
             return list;
         }
 
-        public async Task<IEnumerable<T>> QueryAsync<T>(string query, string connectionString, object parameters = null)
+        public async Task<IEnumerable<T>> QueryAsync<T>(string query, string connectionString, object? parameters = null)
         {
-            using var connection = new SqlConnection(connectionString);
+            using SqlConnection connection = new(connectionString);
             try
             {
                 await connection.OpenAsync();
@@ -87,7 +83,7 @@ namespace ReimbursementReporting.DataAccess.Services
         {
             try
             {
-                string sqlCommandTimeOut = Environment.GetEnvironmentVariable("SQLCommandTimeOut");
+                string? sqlCommandTimeOut = Environment.GetEnvironmentVariable("SQLCommandTimeOut");
                 return !string.IsNullOrEmpty(sqlCommandTimeOut) && int.TryParse(sqlCommandTimeOut, out int parsedValue) ? parsedValue : 300;
             }
             catch (Exception ex)
@@ -103,9 +99,9 @@ namespace ReimbursementReporting.DataAccess.Services
         /// <typeparam name="T">The type of the object to return.</typeparam>
         /// <param name="dataReader">The DataReader.</param>
         /// <returns>Returns the parsed object from the data reader.</returns>
-        private static List<T> DataReaderMapToList<T>(IDataReader dataReader, ILogger logger)
+        private static List<T> DataReaderMapToList<T>(SqlDataReader dataReader, ILogger logger)
         {
-            List<T> list = new();
+            List<T> list = [];
             try
             {
                 T obj = default!;
@@ -138,7 +134,7 @@ namespace ReimbursementReporting.DataAccess.Services
         /// </summary>
         /// <param name="parameters">The dictionary of SQL parameters.</param>
         /// <returns>Returns the collection of sql parameters.</returns>
-        private List<SqlParameter> GetSqlParameters(Dictionary<string, object> parameters)
+        private static List<SqlParameter> GetSqlParameters(Dictionary<string, object> parameters)
         {
             return parameters.Select(sp => new SqlParameter(sp.Key, sp.Value)).ToList();
         }

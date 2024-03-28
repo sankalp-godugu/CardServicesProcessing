@@ -1,4 +1,4 @@
-﻿namespace ReimbursementReporting.Shared
+﻿namespace CardServicesProcessor.Shared
 {
     public class ColumnNames
     {
@@ -29,12 +29,12 @@
         public const string CaseClosedDate = "Case Closed Date";
         public const string ClosingComments = "Closing Comments";
 
-        public static readonly string[] ColumnOrder = ["Insurance Carrier", "Health Plan", "Caseticketnumber", "CaseCategory", "CreateDate", "TransactionDate", "MemberFirstName", "MemberLastName", "DateOfBirth", "City", "State", "Nhmemberid", "InsuranceNumber", "Casetopic", "Casetype", "Caseticketdata", "Wallet", "DenialReason", "RequestedTotalReimbursementAmount", "ApprovedRequestedTotalReimbursementAmount", "CaseStatus", "ApprovedStatus", "ProcessedDate", "ClosingComments"];
-        public static readonly string[] HeaderNames = ["Insurance Carrier", "Health Plan", "Case Ticket Number", "Case Category", "Created Date", "Transaction Date", "Member First Name", "Member Last Name", "Date Of Birth", "City", "State", "EH/NH Member Id", "Insurance Number", "Case Topic", "Case Type", "Case Ticket Data", "Wallet", "Denial Reason", "Requested Total Reimbursement Amount", "Approved Total Reimbursement Amount", "Case Status", "Approved Status", "Processed Date", "Closing Comments"];
+        public static string[] ColumnOrder = ["Insurance Carrier", "Health Plan", "Caseticketnumber", "CaseCategory", "CreateDate", "TransactionDate", "MemberFirstName", "MemberLastName", "DateOfBirth", "City", "State", "Nhmemberid", "InsuranceNumber", "Casetopic", "Casetype", "Caseticketdata", "Wallet", "DenialReason", "RequestedTotalReimbursementAmount", "ApprovedRequestedTotalReimbursementAmount", "CaseStatus", "ApprovedStatus", "ProcessedDate", "ClosingComments"];
+        public static string[] HeaderNames = ["Insurance Carrier", "Health Plan", "Case Ticket Number", "Case Category", "Created Date", "Transaction Date", "Member First Name", "Member Last Name", "Date Of Birth", "City", "State", "EH/NH Member Id", "Insurance Number", "Case Topic", "Case Type", "Case Ticket Data", "Wallet", "Denial Reason", "Requested Total Reimbursement Amount", "Approved Total Reimbursement Amount", "Case Status", "Approved Status", "Processed Date", "Closing Comments"];
 
-        public const int CreateDateColNumber = 5;
-        public const int TransactionDateColNumber = 6;
-        public const int DOBColNumber = 9;
-        public const int ProcessedDateColNumber = 23;
+        public static int CreateDateColNumber = 5;
+        public static int TransactionDateColNumber = 6;
+        public static int DOBColNumber = 9;
+        public static int ProcessedDateColNumber = 23;
     }
 }

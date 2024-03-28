@@ -1,4 +1,4 @@
-﻿namespace ReimbursementReporting.Shared
+﻿namespace CardServicesProcessor.Shared
 {
     public static class Variations
     {

@@ -1,7 +1,245 @@
-﻿namespace ReimbursementReporting.Shared
+﻿namespace CardServicesProcessor.Shared
 {
     public class SQLConstants
     {
-        public static string Query => "--CREATE OR ALTER PROCEDURE ServiceRequest.GetCardServicesCasesYTD\r\n--AS\r\n\r\n-- 1) get all active CS cases\r\nDROP TABLE IF EXISTS #AllCSCases\r\nSELECT\r\n\t\tic.InsuranceCarrierName,\r\n\t\tmc.CaseID,\r\n\t\tmc.CreateUser,\r\n\t\tmct.CaseTicketNumber,\r\n\t\tmct.CaseTicketID,\r\n\t\tmct.ApprovedStatus,\r\n\t\tmcc.CaseCategory,\r\n\t\tmct.AssignedTo,\r\n\t\tmc.CaseNumber,\r\n\t\tmem.NHMemberID,\r\n\t\tmem.MemberID,\r\n\t\tmem.FirstName,\r\n\t\tmem.LastName,\r\n\t\tmem.DateOfBirth,\r\n\t\taddr.City,\r\n\t\taddr.State,\r\n\t\tihp.HealthPlanName,\r\n\t\tihp.InsuranceHealthPlanID,\r\n\t\tmcto.CaseTopic,\r\n\t\tmcto.CaseTopicID,\r\n\t\tmcty.CaseType,\r\n\t\tmct.CaseTicketData,\r\n\t\tmc.RequestorName,\r\n\t\tmcs.CaseStatus,\r\n\t\tmct.CreateDate,\r\n\t\tmct.TransactionStatus,\r\n\t\tmct.ClosingComments,\r\n\t\tmlu.Name AS DenialReason,\r\n\t\tmct.ClosedDate\r\n\t\t\r\nINTO\t#AllCSCases\r\nFROM\tServiceRequest.MemberCases mc\r\nJOIN\tServiceRequest.MemberCaseTickets mct ON mct.CaseID=mc.CaseID\r\nJOIN\tServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = 1\r\nJOIN\tmaster.Members mem ON mem.NHMemberID = mc.NHMemberID\r\nJOIN\tInsurance.InsuranceHealthPlans ihp WITH(NOLOCK) ON ihp.InsuranceHealthPlanID = mc.InsuranceHealthPlanID\r\nJOIN\tInsurance.InsuranceCarriers ic WITH(NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = 1\r\nJOIN ServiceRequest.MemberCaseTopics mcto ON mcto.casetopicid = mct.CaseTopicID\r\nJOIN ServiceRequest.MemberCaseTypeTopicMapping mcttm ON mcttm.CaseTopicID = mcto.CaseTopicID\r\nJOIN ServiceRequest.membercasetypes mcty ON mcty.CaseTypeID = mcttm.CaseTypeID\r\nJOIN ServiceRequest.MemberCaseStatus mcs ON mcs.CaseStatusID = mc.CaseStatusID\r\nLEFT JOIN ServiceRequest.MemberLookUp mlu ON mlu.Id = mct.DenialReasonID\r\nJOIN master.Addresses addr ON addr.MemberID = mem.MemberID\r\nWHERE FirstName NOT LIKE '%test%'\r\nAND LastName NOT LIKE '%test%'\r\nAND mc.IsActive = 1\r\nAND addr.AddressTypeCode = 'PERM'\r\n-- 2024 reimbursements only\r\n--AND (mcto.CaseTopicID = 24 OR mcto.CaseTopic = 'Reimbursement')\r\n--AND YEAR(CONVERT(datetime, mct.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = 2024\r\n--AND MONTH(mct.CreateDate) = 2\r\n--AND ihp.HealthPlanName like '%CDPHP%'\r\n\r\nselect * from #AllCSCases\r\n\r\n-- 2) get newest CS cases for each member-health plan combo (only for active health plans)\r\nDROP TABLE IF EXISTS #MemberInsuranceMax\r\nSELECT   MAX(mi.CreateDate) AS CreateDate, -- why are we doing this?\r\n         mi.MemberID,\r\n         allcs.InsuranceHealthPlanID\r\nINTO     #MemberInsuranceMax\r\nFROM     master.MemberInsurances mi\r\nJOIN     #AllCSCases allcs\r\nON       allcs.memberid = mi.MemberID\r\nAND      mi.InsuranceHealthPlanID = allcs.InsuranceHealthPlanID\r\nWHERE    mi.IsActive = 1\r\nGROUP BY mi.MemberID,\r\n         allcs.InsuranceHealthPlanID\r\n\r\n--select * from #MemberInsuranceMax\r\n\r\n-- 3) table of total reimbursement amount for each case (only including those items that are eligible for reimbursement)\r\nDROP TABLE IF EXISTS #ReimbursementAmount\r\nSELECT allcs.CaseTicketID, ri.IsProcessEligible, SUM(ri.ApprovedAmount) AS ApprovedTotalAmount\r\nINTO #ReimbursementAmount\r\nFROM #AllCSCases allcs\r\nJOIN ServiceRequest.ReimbursementItems ri\r\nON allcs.CaseTicketID = ri.CaseTicketId\r\nGROUP BY allcs.CaseTicketID, ri.IsProcessEligible\r\nHAVING ri.IsProcessEligible = 1\r\n\r\n--select * from #ReimbursementAmount\r\n\r\n-- get reimbursement amounts and transaction dates corresponding to each requested amount\r\nDROP TABLE IF EXISTS #Final\r\nSELECT DISTINCT\r\n\t\tallcs.InsuranceCarrierName,\r\n\t \tallcs.HealthPlanName,\r\n\t\tallcs.CaseTicketNumber,\r\n\t\tallcs.CaseCategory,\r\n\r\n\t\t-- CREATE DATE\r\n\t\tallcs.CreateDate,\r\n\t\t--CONVERT(VARCHAR(MAX), CONVERT(DATETIME, allcs.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time'), 101) AS CreateDate,\r\n\t\t\r\n\t\t-- TRANSACTION DATE\r\n\t\tCASE\r\n\t\t\tWHEN ISJSON(allcs.CaseTicketData) = 1\r\n\t\t\t\tAND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.TransactionDate') = 1\r\n\t\t\t\tAND TRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.TransactionDate')) IS NULL\r\n\t\t\t\tTHEN 'Invalid Date'\r\n\t\t\tWHEN ISJSON(allcs.CaseTicketData) = 1\r\n\t\t\t\tAND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.\"New Reimbursement Request\".TransactionDate') = 1\r\n\t\t\t\tAND\tTRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.\"New Reimbursement Request\".TransactionDate')) IS NULL\r\n\t\t\t\tTHEN 'Invalid Date'\r\n\t\t\tWHEN ISJSON(allcs.CaseTicketData) = 1\r\n\t\t\t\tAND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.TransactionDate') = 1\r\n\t\t\t\tAND TRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.TransactionDate')) IS NOT NULL\r\n\t\t\t\tTHEN CONVERT(VARCHAR(MAX), TRY_CONVERT(DATETIME, JSON_VALUE(CaseTicketData, '$.TransactionDate')), 121)\r\n\t\t\tWHEN ISJSON(CaseTicketData) = 1\r\n\t\t\t\tAND JSON_PATH_EXISTS(CaseTicketData, '$.\"New Reimbursement Request\".TransactionDate') = 1\r\n\t\t\t\tAND TRY_CONVERT(DATETIME, JSON_VALUE(CaseTicketData, '$.\"New Reimbursement Request\".TransactionDate')) IS NOT NULL\r\n\t\t\t\tTHEN CONVERT(VARCHAR(MAX), TRY_CONVERT(DATETIME,JSON_VALUE(CaseTicketData, '$.\"New Reimbursement Request\".TransactionDate')), 121)\r\n\t\t\tELSE 'Invalid Date'\r\n\t\tEND AS TransactionDate,\r\n\r\n\t\t-- MEMBER INFO\r\n\t\tallcs.FirstName,\r\n\t\tallcs.LastName,\r\n\t\t--CONVERT(VARCHAR(MAX),DateOfBirth, 101) DateOfBirth,\r\n\t\tallcs.DateOfBirth,\r\n\t\tallcs.City,\r\n\t\tallcs.State,\r\n\t\tallcs.NHMemberID,\r\n\t\tmid.InsuranceNbr,\r\n\t\tallcs.CaseTopic,\r\n\t\tallcs.CaseType,\r\n\t\tallcs.CaseTicketData,\r\n\t\tri.WalletValue,\r\n\t\tallcs.DenialReason,\r\n\r\n\t\t-- REQUESTED AMOUNT\r\n\t\tCASE WHEN ISJSON(allcs.CaseTicketData) = 1 AND allcs.CaseTopicID = 24\r\n\t\t\t THEN CONVERT(DECIMAL(10,2), JSON_VALUE(allcs.CaseTicketData, '$.\"New Reimbursement Request\".TransactionDetails.TotalReimbursmentAmount'))\r\n\t\tEND AS RequestedTotalReimbursementAmount,\r\n\r\n\t\t--ra.ApprovedAmount\r\n\t\tCASE WHEN (ISJSON(allcs.CaseTicketData) = 1 and allcs.CaseTopicID=24 AND ra.ApprovedTotalAmount > 0)\r\n\t\t\t\tTHEN ra.ApprovedTotalAmount\r\n             ELSE '0.00'\r\n\t\tEND AS ApprovedTotalReimbursementAmount,\r\n\r\n\t\t--ra.AvailableAmount,\r\n\r\n\t\tallcs.CaseStatus,\r\n\t\tallcs.ApprovedStatus,\r\n\r\n\t\t-- PROCESSED DATE\r\n\t\tallcs.ClosedDate,\r\n\t\t--CONVERT(VARCHAR(MAX), CONVERT(DATETIME, allcs.ClosedDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time'), 101) AS ProcessedDate,\r\n\r\n\t\tallcs.ClosingComments\r\nINTO\t\t#Final\r\nFROM\t\t#AllCSCases allcs\r\nJOIN\t\t#MemberInsuranceMax mix ON mix.MemberID = allcs.MemberID\r\nJOIN\t\tmaster.MemberInsurances mi ON allcs.MemberID = mi.MemberID AND mix.CreateDate = mi.CreateDate\r\nJOIN\t\tmaster.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID\r\nLEFT JOIN\tServiceRequest.ReimbursementItems ri ON allcs.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = 1\r\nLEFT JOIN\t#ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID\r\n\r\n-- Final query\r\nSELECT\r\n\tfin.InsuranceCarrierName AS [Insurance Carrier],\r\n\tfin.HealthPlanName AS [Health Plan],\r\n\tfin.CaseTicketNumber AS [Case Ticket Number],\r\n\tfin.CaseCategory AS [Case Category],\r\n\tfin.CreateDate AS [Create Date],\r\n\tfin.TransactionDate AS [Transaction Date],\r\n\tfin.FirstName AS [Member First Name],\r\n\tfin.LastName AS [Member Last Name],\r\n\tfin.DateOfBirth AS [Date Of Birth],\r\n\tfin.City AS City,\r\n\tfin.State AS State,\r\n\tfin.NHMemberID AS [NH/EH Member ID],\r\n\tfin.InsuranceNbr AS [Insurance Number],\r\n\tfin.CaseTopic AS [Case Topic],\r\n\tfin.CaseType AS [Case Type],\r\n\tfin.CaseTicketData AS [Case Ticket Data],\r\n\tfin.WalletValue AS Wallet,\r\n\tfin.DenialReason AS [Denial Reason],\r\n\tfin.RequestedTotalReimbursementAmount AS [Requested Total Reimbursement Amount],\r\n\tfin.ApprovedTotalReimbursementAmount AS [Approved Total Reimbursement Amount],\r\n\t--fin.AvailableAmount,\r\n\tfin.CaseStatus AS [Case Status],\r\n\tfin.ApprovedStatus AS [Approved Status],\r\n\tfin.ClosedDate AS [Processed Date],\r\n\tfin.ClosingComments AS [Closing Comments]\r\nFROM #Final fin\r\nWHERE 1=1\r\n--AND fin.CaseTicketNumber = 'EHCM202400063372-1'\r\n--AND fin.ClosingComments like '%- Reimbursement Processed%.'\r\n--WHERE fin.CaseTicketNumber = 'EHCM202400062736-1'\r\n--AND fin.[CaseStatus] in ('Pending Processing', 'In Review', 'Failed')\r\n--AND fin.CaseStatus = 'In Review'\r\n--AND fin.CaseTopic = 'Reimbursement'\r\n--AND YEAR(fin.CreateDate) = 2024\r\n--AND ISDATE(fin.TransactionDate) != 1\r\n--AND (fin.TransactionDate is null OR fin.TransactionDate like '%Invalid%')\r\n--AND fin.CaseTicketNumber = 'NBCM202400079733-1'\r\n--AND fin.CaseTicketNumber = 'NBCM202400078578-1'\r\nORDER BY\r\n\tfin.CreateDate\r\n--GO\r\n";
+        public static string Query => @"--CREATE OR ALTER PROCEDURE ServiceRequest.GetCardServicesCasesYTD
+--AS
+
+-- 1) get all active CS cases
+DROP TABLE IF EXISTS #AllCSCases
+SELECT
+		ic.InsuranceCarrierName,
+		mc.CaseID,
+		mc.CreateUser,
+		mct.CaseTicketNumber,
+		mct.CaseTicketID,
+		mct.ApprovedStatus,
+		mcc.CaseCategory,
+		mct.AssignedTo,
+		mc.CaseNumber,
+		mem.NHMemberID,
+		mem.MemberID,
+		mem.FirstName,
+		mem.LastName,
+		mem.DateOfBirth,
+		addr.City,
+		addr.State,
+		ihp.HealthPlanName,
+		ihp.InsuranceHealthPlanID,
+		mcto.CaseTopic,
+		mcto.CaseTopicID,
+		mcty.CaseType,
+		mct.CaseTicketData,
+		mc.RequestorName,
+		mcs.CaseStatus,
+		mct.CreateDate,
+		mct.TransactionStatus,
+		mct.ClosingComments,
+		mlu.Name AS DenialReason,
+		mct.ClosedDate
+		
+INTO	#AllCSCases
+FROM	ServiceRequest.MemberCases mc
+JOIN	ServiceRequest.MemberCaseTickets mct ON mct.CaseID=mc.CaseID
+JOIN	ServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = 1
+JOIN	master.Members mem ON mem.NHMemberID = mc.NHMemberID
+JOIN	Insurance.InsuranceHealthPlans ihp WITH(NOLOCK) ON ihp.InsuranceHealthPlanID = mc.InsuranceHealthPlanID
+JOIN	Insurance.InsuranceCarriers ic WITH(NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = 1
+JOIN ServiceRequest.MemberCaseTopics mcto ON mcto.casetopicid = mct.CaseTopicID
+JOIN ServiceRequest.MemberCaseTypeTopicMapping mcttm ON mcttm.CaseTopicID = mcto.CaseTopicID
+JOIN ServiceRequest.membercasetypes mcty ON mcty.CaseTypeID = mcttm.CaseTypeID
+JOIN ServiceRequest.MemberCaseStatus mcs ON mcs.CaseStatusID = mc.CaseStatusID
+LEFT JOIN ServiceRequest.MemberLookUp mlu ON mlu.Id = mct.DenialReasonID
+JOIN master.Addresses addr ON addr.MemberID = mem.MemberID
+WHERE FirstName NOT LIKE '%test%'
+AND LastName NOT LIKE '%test%'
+AND mc.IsActive = 1
+AND addr.AddressTypeCode = 'PERM'
+-- 2024 reimbursements only
+--AND (mcto.CaseTopicID = 24 OR mcto.CaseTopic = 'Reimbursement')
+--AND YEAR(CONVERT(datetime, mct.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = 2024
+--AND MONTH(mct.CreateDate) = 2
+--AND ihp.HealthPlanName like '%CDPHP%'
+
+--select * from #AllCSCases
+
+-- 2) get newest CS cases for each member-health plan combo (only for active health plans)
+DROP TABLE IF EXISTS #MemberInsuranceMax
+SELECT   MAX(mi.CreateDate) AS CreateDate, -- why are we doing this?
+         mi.MemberID,
+         allcs.InsuranceHealthPlanID
+INTO     #MemberInsuranceMax
+FROM     master.MemberInsurances mi
+JOIN     #AllCSCases allcs
+ON       allcs.memberid = mi.MemberID
+AND      mi.InsuranceHealthPlanID = allcs.InsuranceHealthPlanID
+WHERE    mi.IsActive = 1
+GROUP BY mi.MemberID,
+         allcs.InsuranceHealthPlanID
+
+--select * from #MemberInsuranceMax
+
+-- 3) table of total reimbursement amount for each case (only including those items that are eligible for reimbursement)
+DROP TABLE IF EXISTS #ReimbursementAmount
+SELECT allcs.CaseTicketID, ri.IsProcessEligible, SUM(ri.ApprovedAmount) AS ApprovedTotalAmount
+INTO #ReimbursementAmount
+FROM #AllCSCases allcs
+JOIN ServiceRequest.ReimbursementItems ri
+ON allcs.CaseTicketID = ri.CaseTicketId
+GROUP BY allcs.CaseTicketID, ri.IsProcessEligible
+HAVING ri.IsProcessEligible = 1
+
+--select * from #ReimbursementAmount
+
+-- get reimbursement amounts and transaction dates corresponding to each requested amount
+DROP TABLE IF EXISTS #Final
+SELECT DISTINCT
+		allcs.InsuranceCarrierName,
+	 	allcs.HealthPlanName,
+		allcs.CaseTicketNumber,
+		allcs.CaseCategory,
+
+		-- CREATE DATE
+		allcs.CreateDate,
+		--CONVERT(VARCHAR(MAX), CONVERT(DATETIME, allcs.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time'), 101) AS CreateDate,
+		
+		-- TRANSACTION DATE
+		CASE
+			WHEN ISJSON(allcs.CaseTicketData) = 1
+				AND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.TransactionDate') = 1
+				AND TRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.TransactionDate')) IS NULL
+				THEN 'Invalid Date'
+			WHEN ISJSON(allcs.CaseTicketData) = 1
+				AND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.""New Reimbursement Request"".TransactionDate') = 1
+				AND	TRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.""New Reimbursement Request"".TransactionDate')) IS NULL
+				THEN 'Invalid Date'
+			WHEN ISJSON(allcs.CaseTicketData) = 1
+				AND JSON_PATH_EXISTS(allcs.CaseTicketData, '$.TransactionDate') = 1
+				AND TRY_CONVERT(DATETIME, JSON_VALUE(allcs.CaseTicketData, '$.TransactionDate')) IS NOT NULL
+				THEN CONVERT(VARCHAR(MAX), TRY_CONVERT(DATETIME, JSON_VALUE(CaseTicketData, '$.TransactionDate')), 121)
+			WHEN ISJSON(CaseTicketData) = 1
+				AND JSON_PATH_EXISTS(CaseTicketData, '$.""New Reimbursement Request"".TransactionDate') = 1
+				AND TRY_CONVERT(DATETIME, JSON_VALUE(CaseTicketData, '$.""New Reimbursement Request"".TransactionDate')) IS NOT NULL
+				THEN CONVERT(VARCHAR(MAX), TRY_CONVERT(DATETIME,JSON_VALUE(CaseTicketData, '$.""New Reimbursement Request"".TransactionDate')), 121)
+			ELSE 'Invalid Date'
+		END AS TransactionDate,
+
+		-- MEMBER INFO
+		allcs.FirstName,
+		allcs.LastName,
+		--CONVERT(VARCHAR(MAX),DateOfBirth, 101) DateOfBirth,
+		allcs.DateOfBirth,
+		allcs.City,
+		allcs.State,
+		allcs.NHMemberID,
+		mid.InsuranceNbr,
+		allcs.CaseTopic,
+		allcs.CaseType,
+		allcs.CaseTicketData,
+		ri.WalletValue,
+		allcs.DenialReason,
+
+		-- REQUESTED AMOUNT
+		CASE WHEN ISJSON(allcs.CaseTicketData) = 1 AND allcs.CaseTopicID = 24
+			 THEN CONVERT(DECIMAL(10,2), JSON_VALUE(allcs.CaseTicketData, '$.""New Reimbursement Request"".TransactionDetails.TotalReimbursmentAmount'))
+		END AS RequestedTotalReimbursementAmount,
+
+		--ra.ApprovedAmount
+		CASE WHEN (ISJSON(allcs.CaseTicketData) = 1 and allcs.CaseTopicID=24 AND ra.ApprovedTotalAmount > 0)
+				THEN ra.ApprovedTotalAmount
+             ELSE '0.00'
+		END AS ApprovedTotalReimbursementAmount,
+
+		--ra.AvailableAmount,
+
+		allcs.CaseStatus,
+		allcs.ApprovedStatus,
+
+		-- PROCESSED DATE
+		allcs.ClosedDate,
+		--CONVERT(VARCHAR(MAX), CONVERT(DATETIME, allcs.ClosedDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time'), 101) AS ProcessedDate,
+
+		allcs.ClosingComments
+INTO		#Final
+FROM		#AllCSCases allcs
+JOIN		#MemberInsuranceMax mix ON mix.MemberID = allcs.MemberID
+JOIN		master.MemberInsurances mi ON allcs.MemberID = mi.MemberID AND mix.CreateDate = mi.CreateDate
+JOIN		master.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID
+LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allcs.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = 1
+LEFT JOIN	#ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID
+
+-- Final query
+--SELECT
+--	fin.InsuranceCarrierName AS [Insurance Carrier],
+--	fin.HealthPlanName AS [Health Plan],
+--	fin.CaseTicketNumber AS [Case Ticket Number],
+--	fin.CaseCategory AS [Case Category],
+--	fin.CreateDate AS [Create Date],
+--	fin.TransactionDate AS [Transaction Date],
+--	fin.FirstName AS [Member First Name],
+--	fin.LastName AS [Member Last Name],
+--	fin.DateOfBirth AS [Date Of Birth],
+--	fin.City AS City,
+--	fin.State AS State,
+--	fin.NHMemberID AS [NH/EH Member ID],
+--	fin.InsuranceNbr AS [Insurance Number],
+--	fin.CaseTopic AS [Case Topic],
+--	fin.CaseType AS [Case Type],
+--	fin.CaseTicketData AS [Case Ticket Data],
+--	fin.WalletValue AS Wallet,
+--	fin.DenialReason AS [Denial Reason],
+--	fin.RequestedTotalReimbursementAmount AS [Requested Total Reimbursement Amount],
+--	fin.ApprovedTotalReimbursementAmount AS [Approved Total Reimbursement Amount],
+--	--fin.AvailableAmount,
+--	fin.CaseStatus AS [Case Status],
+--	fin.ApprovedStatus AS [Approved Status],
+--	fin.ClosedDate AS [Processed Date],
+--	fin.ClosingComments AS [Closing Comments]
+--FROM #Final fin
+--WHERE 1=1
+--AND fin.CaseTicketNumber = 'EHCM202400063372-1'
+--AND fin.ClosingComments like '%- Reimbursement Processed%.'
+--WHERE fin.CaseTicketNumber = 'EHCM202400062736-1'
+--AND fin.[CaseStatus] in ('Pending Processing', 'In Review', 'Failed')
+--AND fin.CaseStatus = 'In Review'
+--AND fin.CaseTopic = 'Reimbursement'
+--AND YEAR(fin.CreateDate) = 2024
+--AND ISDATE(fin.TransactionDate) != 1
+--AND (fin.TransactionDate is null OR fin.TransactionDate like '%Invalid%')
+--AND fin.CaseTicketNumber = 'NBCM202400079733-1'
+--AND fin.CaseTicketNumber = 'NBCM202400078578-1'
+--ORDER BY fin.CreateDate
+
+SELECT
+	fin.InsuranceCarrierName,
+	fin.HealthPlanName,
+	fin.CaseTicketNumber,
+	fin.CaseCategory,
+	fin.CreateDate,
+	fin.TransactionDate,
+	fin.FirstName,
+	fin.LastName,
+	fin.DateOfBirth,
+	fin.City,
+	fin.State,
+	fin.NHMemberID,
+	fin.InsuranceNbr,
+	fin.CaseTopic,
+	fin.CaseType,
+	fin.CaseTicketData,
+	fin.WalletValue AS Wallet,
+	fin.DenialReason,
+	fin.RequestedTotalReimbursementAmount,
+	fin.ApprovedTotalReimbursementAmount,
+	fin.CaseStatus,
+	fin.ApprovedStatus,
+	fin.ClosedDate AS ProcessedDate,
+	fin.ClosingComments
+FROM #Final fin
+WHERE 1=1
+ORDER BY
+	fin.CreateDate
+--GO
+";
     }
 }

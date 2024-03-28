@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 
-namespace ReimbursementReporting.Shared
+namespace CardServicesProcessor.Shared
 {
     public class MapperConfig
     {

@@ -1,7 +1,6 @@
-﻿using ReimbursementReporting.Utilities.Constants;
-using System.Collections.Generic;
+﻿using CardServicesProcessor.Utilities.Constants;
 
-namespace ReimbursementReporting.Shared
+namespace CardServicesProcessor.Shared
 {
     public static class Wallet
     {
@@ -46,11 +45,11 @@ namespace ReimbursementReporting.Shared
             };
         }
 
-        public static string GetWalletFromCommentsOrWalletCol(this string wallet, string closingComments, Dictionary<string, string[]> walletNameToVariations)
+        public static string GetWalletFromCommentsOrWalletCol(this string wallet, string? closingComments, Dictionary<string, string[]> walletNameToVariations)
         {
             foreach (KeyValuePair<string, string[]> kvp in walletNameToVariations)
             {
-                if (!string.IsNullOrWhiteSpace(closingComments) && closingComments.ContainsAny(kvp.Value)
+                if ((!string.IsNullOrWhiteSpace(closingComments) && closingComments.ContainsAny(kvp.Value))
                     || wallet.ContainsAny(kvp.Value))
                 {
                     return kvp.Key;

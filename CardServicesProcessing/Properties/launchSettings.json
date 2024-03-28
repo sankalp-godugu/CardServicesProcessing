@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "FunctionApp1": {
+    "Local": {
       "commandName": "Project",
       "commandLineArgs": "--port 7020"
     },
