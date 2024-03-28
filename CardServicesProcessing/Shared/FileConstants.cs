@@ -8,17 +8,17 @@
 
         public static class Nations
         {
-            public static string CurrSheet => "NB - Raw";
-            public static string PrevSheet => "Nations Reimbursements";
-            public static string OutputSheet => "NB - Draft";
+            public static string SheetRaw => "NB - Raw";
+            public static string SheetPrev => "Nations Reimbursements";
+            public static string SheetDraft => "NB - Draft";
             public static int Location => 5;
         }
 
         public static class Elevance
         {
-            public static string CurrSheet => "ELV - Raw";
-            public static string PrevSheet => "Elevance Reimbursements";
-            public static string OutputSheet => "ELV - Draft";
+            public static string SheetRaw => "ELV - Raw";
+            public static string SheetPrev => "Elevance Reimbursements";
+            public static string SheetDraft => "ELV - Draft";
             public static int Location => 2;
         }
     }

@@ -51,6 +51,8 @@ namespace CardServicesProcessor.Services
                     DataRow dataRow = dt.NewRow();
                     try
                     {
+                        string? insuranceCarrier = cssCase.InsuranceCarrierName?.Trim();
+                        string? healthPlan = cssCase.HealthPlanName?.Trim();
                         string? caseTicketNbr = cssCase.CaseTicketNumber?.Trim();
                         string? caseCategory = cssCase.CaseCategory?.Trim() == "Case" ? "Card Services" : "Unknown";
                         DateTime? createDate = cssCase.CreateDate?.ParseAndConvertDateTime(ColumnNames.CreateDate);
@@ -67,8 +69,8 @@ namespace CardServicesProcessor.Services
                         string? caseTicketData = cssCase.CaseTicketData?.Trim();
                         string? wallet = cssCase.WalletValue?.Trim();
                         string? denialReason = cssCase.DenialReason?.Trim();
-                        decimal? requestedTotalAmount = dataRow.ParseAmount(ColumnNames.RequestedTotalReimbursementAmount);
-                        decimal? approvedTotalAmount = dataRow.ParseAmount(ColumnNames.ApprovedTotalReimbursementAmount);
+                        decimal? requestedTotalAmount = cssCase.RequestedTotalReimbursementAmount?.ParseAmount(ColumnNames.RequestedTotalReimbursementAmount);
+                        decimal? approvedTotalAmount = cssCase.ApprovedTotalReimbursementAmount?.ParseAmount(ColumnNames.ApprovedTotalReimbursementAmount);
                         string? caseStatus = cssCase.CaseStatus?.Trim();
                         string? approvedStatus = cssCase.ApprovedStatus?.Trim();
                         DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseAndConvertDateTime(ColumnNames.ProcessedDate);
@@ -158,12 +160,7 @@ namespace CardServicesProcessor.Services
                                 denialReason = null;
                             }
 
-                            // processed date
-                            /*if (string.IsNullOrWhiteSpace(approvedStatus)
-                                && !string.IsNullOrWhiteSpace(processedDate))
-                            {
-                                processedDate = "NULL";
-                            }*/
+                            dataRow[ColumnNames.ProcessedDate] = processedDate;
 
                             // consolidate wallets
                             wallet = !string.IsNullOrWhiteSpace(wallet) ? wallet.GetWalletFromCommentsOrWalletCol(closingComments, Wallet.GetCategoryVariations()) : wallet;
@@ -182,9 +179,9 @@ namespace CardServicesProcessor.Services
                         }*/
 
                         // update rows
-                        dataRow.FormatForExcel(ColumnNames.InsuranceCarrier, cssCase.InsuranceCarrierName.Trim());
-                        dataRow.FormatForExcel(ColumnNames.HealthPlan, cssCase.HealthPlanName.Trim());
-                        dataRow.FormatForExcel(ColumnNames.CaseTicketNumber, caseTicketNbr.Trim());
+                        dataRow.FormatForExcel(ColumnNames.InsuranceCarrier, insuranceCarrier);
+                        dataRow.FormatForExcel(ColumnNames.HealthPlan, healthPlan);
+                        dataRow.FormatForExcel(ColumnNames.CaseTicketNumber, caseTicketNbr);
                         dataRow.FormatForExcel(ColumnNames.CaseCategory, caseCategory);
                         dataRow.FormatForExcel(ColumnNames.CreateDate, createDate?.ToShortDateString());
                         dataRow.FormatForExcel(ColumnNames.TransactionDate, transactionDate?.ToShortDateString());
@@ -202,12 +199,12 @@ namespace CardServicesProcessor.Services
                         dataRow.FormatForExcel(ColumnNames.DenialReason, denialReason);
                         dataRow.FormatForExcel(ColumnNames.RequestedTotalReimbursementAmount, requestedTotalAmount?.ToString("C2"));
                         dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, approvedTotalAmount?.ToString("C2"));
-                        dataRow.FormatForExcel(ColumnNames.CaseStatus, cssCase.CaseStatus);
-                        dataRow.FormatForExcel(ColumnNames.ApprovedStatus, cssCase.ApprovedStatus);
-                        dataRow.FormatForExcel(ColumnNames.ProcessedDate, cssCase.ProcessedDate);
-                        dataRow.FormatForExcel(ColumnNames.ClosingComments, cssCase.ClosingComments);
+                        dataRow.FormatForExcel(ColumnNames.CaseStatus, caseStatus);
+                        dataRow.FormatForExcel(ColumnNames.ApprovedStatus, approvedStatus);
+                        dataRow.FormatForExcel(ColumnNames.ProcessedDate, processedDate?.ToShortDateString());
+                        dataRow.FormatForExcel(ColumnNames.ClosingComments, closingComments);
 
-                        dataRow.FillOutlierData(caseTicketNbr, wallet, requestedTotalAmount?.ToString("C2"));
+                        dataRow.FillOutlierData(caseTicketNbr, wallet, requestedTotalAmount);
 
                         dt.Rows.Add(dataRow);
                     }
@@ -231,8 +228,13 @@ namespace CardServicesProcessor.Services
 
             // Open the Excel file
             using XLWorkbook workbook = new(filePath);
-            // Get the first worksheet
-            IXLWorksheet worksheet = workbook.Worksheet(sheetName);
+
+            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out var worksheet);
+
+            if (!worksheetExists)
+            {
+                return null;
+            }
 
             // Define the columns you want to extract
             int caseTicketNumberColIndex = 3; // Assuming the first column (A) contains the first desired column

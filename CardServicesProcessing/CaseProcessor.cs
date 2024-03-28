@@ -24,12 +24,12 @@ namespace CardServicesProcessor
                     string nationsConn = config["NationsProdConn"] ?? Environment.GetEnvironmentVariable("NationsProdConn");
 
                     // 1. Execute query to get all cases
-                    await ProcessReport(elvConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Elevance.PrevSheet, FileConstants.Elevance.CurrSheet, 2);
-                    await ProcessReport(nationsConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Nations.PrevSheet, FileConstants.Nations.CurrSheet, 5);
-                });
+                    await ProcessReport(elvConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Elevance.SheetPrev, FileConstants.Elevance.SheetDraft, 2);
+                    await ProcessReport(nationsConn, dataLayer, config, log, FileConstants.CurrReportFilePath, FileConstants.Nations.SheetPrev, FileConstants.Nations.SheetDraft, 5);
 
-                log.LogInformation("Opening the Excel file...");
-                ExcelService.OpenExcel(FileConstants.CurrReportFilePath, FileConstants.Elevance.CurrSheet);
+                    log.LogInformation("Opening the Excel file...");
+                    ExcelService.OpenExcel(FileConstants.CurrReportFilePath);
+                });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
             }
@@ -40,14 +40,14 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReport(string conn, IDataLayer dataLayer, IConfiguration config, ILogger log, string filePath, string inputSheetPrev, string outputSheet, int loc)
+        private static async Task ProcessReport(string conn, IDataLayer dataLayer, IConfiguration config, ILogger log, string reportFilePath, string sheetPrev, string sheetDraft, int pos)
         {
             string manualAdjustmentsSrcFilePath =
                     //@"https://nationshearingllc-my.sharepoint.com/:x:/g/personal/mtapia_nationsbenefits_com/EZay0mCSlPVMrYknu4tMSyQBPJQQq0pjGnOeR45l5R07fw?e=9a6N0x&wdOrigin=TEAMS-MAGLEV.undefined_ns.rwc&wdExp=TEAMS-TREATMENT&wdhostclicktime=1710943414625&web=1";
             @"C:\Users\Sankalp.Godugu\Downloads\Manual Adjustments 2023.xlsx";
             string[] sheets = ["2023 Reimbursements-completed", "2023 Reimbursements-working"];
 
-            bool isElv = inputSheetPrev.Contains("Elevance");
+            bool isElv = sheetPrev.Contains("Elevance");
 
             log.LogInformation("Executing query...");
             IEnumerable<CardServicesResponse> response = await dataLayer.QueryAsync<CardServicesResponse>(SQLConstants.Query, conn);
@@ -56,16 +56,16 @@ namespace CardServicesProcessor
             DataTable tblCurr = DataService.ValidateCases(response);
 
             log.LogInformation("Reading data from last report sent to Elevance...");
-            DataTable? tblPrev = DataService.ReadPrevYTDExcelToDataTable(FileConstants.FilePathPrev, inputSheetPrev);
+            DataTable? tblPrev = DataService.ReadPrevYTDExcelToDataTable(FileConstants.FilePathPrev, sheetPrev);
 
             log.LogInformation("Populating missing data from previous 2024 report...");
             DataTable tblFinal = ExcelService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
 
             log.LogInformation("Populating missing wallets from Manual Reimbursements 2023 Report...");
-            ExcelService.FillMissingWallet(manualAdjustmentsSrcFilePath, sheets, tblFinal);
+            ExcelService.FillMissingWallet(manualAdjustmentsSrcFilePath, tblFinal);
 
             log.LogInformation("Writing to Excel and applying filters...");
-            ExcelService.ApplyFiltersAndSaveReport(tblFinal, filePath, outputSheet, loc);
+            ExcelService.ApplyFiltersAndSaveReport(tblFinal, reportFilePath, sheetDraft, pos);
         }
     }
 }

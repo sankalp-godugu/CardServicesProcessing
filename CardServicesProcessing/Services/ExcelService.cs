@@ -8,30 +8,7 @@ namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static void ReorderColumns(this DataTable dataTable, string[] columnOrder)
-        {
-            DataTable newTable = new();
-
-            foreach (string columnName in columnOrder)
-            {
-                DataColumn column = dataTable.Columns[columnName];
-                _ = newTable.Columns.Add(column.ColumnName, column.DataType);
-            }
-
-            foreach (DataRow row in dataTable.Rows)
-            {
-                DataRow newRow = newTable.Rows.Add();
-                foreach (string columnName in columnOrder)
-                {
-                    newRow[columnName] = row[columnName];
-                }
-            }
-
-            dataTable.Clear();
-            dataTable.Merge(newTable);
-        }
-
-        public static DataTable ReadSecondExcelData(string filePath, string[] sheets)
+        public static DataTable ReadSecondExcelData(string filePath)
         {
             DataTable dataTable = new();
 
@@ -112,10 +89,10 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void FillMissingWallet(string excelLink, string[] sheets, DataTable dt)
+        public static void FillMissingWallet(string excelLink, DataTable dt)
         {
             // Load data from the second Excel file
-            DataTable tblManualReimbursements = ReadSecondExcelData(excelLink, sheets);
+            DataTable tblManualReimbursements = ReadSecondExcelData(excelLink);
 
             foreach (DataRow row in dt.Rows)
             {
@@ -167,7 +144,7 @@ namespace CardServicesProcessor.Services
             // At this point, the "Wallet" column in your first datatable should be updated with the mapped benefit descriptions
         }
 
-        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, string? wallet, string? requestedTotalAmount)
+        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, string? wallet, decimal? requestedTotalAmount)
         {
             if (string.IsNullOrWhiteSpace(caseTicketNumber))
             {
@@ -178,17 +155,17 @@ namespace CardServicesProcessor.Services
             switch (caseTicketNumber)
             {
                 case "EHCM202400062886-1":
-                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, "300");
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 300.ToString("C2"));
                     break;
                 case "EHCM202400068352-1":
-                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, "50");
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 50.ToString("C2"));
                     break;
                 case "EHCM202400070732-1":
-                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, requestedTotalAmount);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, requestedTotalAmount?.ToString("C2"));
                     break;
                 case "EHCM202400070290-1":
                     dataRow.FormatForExcel(ColumnNames.DenialReason, "Ineligible Retailer (not allowed)");
-                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, "0");
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
                     break;
                 case "EHCM202400068493-1":
@@ -293,7 +270,7 @@ namespace CardServicesProcessor.Services
             {
                 dataRow.FormatForExcel(ColumnNames.DenialReason, "Ineligible Retailer (not allowed)");
                 dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
-                dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, "0");
+                dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
             }
             else if (caseTicketNumber.ContainsAny(
             [
@@ -450,7 +427,7 @@ namespace CardServicesProcessor.Services
             workbook.Save();
         }
 
-        public static void OpenExcel(string filePath, string sheetName)
+        public static void OpenExcel(string filePath)
         {
             // Path to Excel executable
             string excelPath = File.Exists(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE") ?
@@ -465,8 +442,6 @@ namespace CardServicesProcessor.Services
                 UseShellExecute = false
             };
             _ = Process.Start(startInfo);
-
-
 
             // method 2
             /*Application excelApp = new()

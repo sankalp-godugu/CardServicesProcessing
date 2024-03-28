@@ -63,7 +63,7 @@ namespace CardServicesProcessor.DataAccess.Services
             {
                 await connection.OpenAsync();
 
-                return await connection.QueryAsync<T>(query, parameters);
+                return await connection.QueryAsync<T>(query, commandTimeout: 0);
             }
             catch (Exception ex)
             {

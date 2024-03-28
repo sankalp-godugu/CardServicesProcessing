@@ -33,15 +33,14 @@ namespace CardServicesProcessor.Utilities.Constants
             }
         }
 
-        public static decimal? ParseAmount(this DataRow dataRow, string columnName)
+        public static decimal? ParseAmount(this string amount, string columnName)
         {
-            if (dataRow == null || string.IsNullOrEmpty(columnName) || !dataRow.Table.Columns.Contains(columnName))
+            if (string.IsNullOrEmpty(columnName))
             {
                 return null;
             }
 
-            string? valueAsString = dataRow[columnName]?.ToString();
-            return string.IsNullOrWhiteSpace(valueAsString) ? null : decimal.TryParse(valueAsString, out decimal result) ? result : null;
+            return string.IsNullOrWhiteSpace(amount) ? null : decimal.TryParse(amount, out decimal result) ? result : null;
         }
 
         public static bool IsNA(this string value)
@@ -59,10 +58,10 @@ namespace CardServicesProcessor.Utilities.Constants
                     ? date.ToShortDateString()
                         : value,
                 (ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount)
-                    => dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
+                    => string.IsNullOrWhiteSpace(value) || dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
                         : decimal.TryParse(value, out decimal amount)
                     ? amount.ToString("C2")
-                        : 0,
+                        : value,
                 _ => string.IsNullOrWhiteSpace(value) ? "NULL" : value,
             };
         }
