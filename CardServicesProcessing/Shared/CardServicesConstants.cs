@@ -2,28 +2,32 @@
 {
     public static class CardServicesConstants
     {
-        public static string FilePathCurr => @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\Changes\YTD_CardServices.xlsx";
+        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-d}\CardServicesReport_{DateTime.Today:MMddyyyy}.xlsx";
 
-        public static readonly string FilePathPrev = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\Elevance Reimbursement Data YTD - 03142024.xlsx";
+        public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\Elevance Reimbursement Data YTD - 03142024.xlsx";
 
-        public static class Nations
-        {
-            public static string SheetName => typeof(Nations).Name;
-            public static string SheetPrev => "Nations Reimbursements";
-            public static string SheetRaw => "NB - Raw";
-            public static string SheetDraft => "NB - Draft";
-            public static string SheetFinal => "NB - Final";
-            public static int SheetDraftIndex => 5;
-        }
+        public static readonly string ManualReimbursements2023SrcFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Adjustments 2023.xlsx";
+
+        public static readonly string ManualReimbursements2024SrcFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Reimbursements.xlsx";
 
         public static class Elevance
         {
-            public static string SheetName => typeof(Elevance).Name;
-            public static string SheetPrev => "Elevance Reimbursements";
-            public static string SheetRaw => "ELV - Raw";
-            public static string SheetDraft => "ELV - Draft";
-            public static string SheetFinal => "ELV - Final";
-            public static int SheetDraftIndex => 2;
+            public static readonly string SheetName = typeof(Elevance).Name;
+            public static readonly string SheetPrev = "Elevance Reimbursements";
+            public static readonly string SheetRaw = "ELV - Raw";
+            public static readonly string SheetDraft = "ELV - Draft";
+            public static readonly string SheetFinal = "ELV - Final";
+            public static readonly int SheetDraftIndex = 1;
+        }
+
+        public static class Nations
+        {
+            public static readonly string SheetName = typeof(Nations).Name;
+            public static readonly string SheetPrev = "Nations Reimbursements";
+            public static readonly string SheetRaw = "NB - Raw";
+            public static readonly string SheetDraft = "NB - Draft";
+            public static readonly string SheetFinal = "NB - Final";
+            public static readonly int SheetDraftIndex = 2;
         }
     }
 }

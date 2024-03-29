@@ -14,10 +14,10 @@ namespace CardServicesProcessor
             _ = await CaseProcessor.ProcessAllCases(configuration, dataLayer, logger, cache);
         }
 
-        [Function("CheckIssuanceProcessor")]
+        /*[Function("CheckIssuanceProcessor")]
         public async Task GenerateReimbursementCheckIssuance([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
         {
-            //_ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger, cache);
-        }
+            _ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger, cache);
+        }*/
     }
 }

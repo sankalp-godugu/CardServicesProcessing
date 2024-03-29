@@ -2,7 +2,7 @@
 {
     public static class SqlConstantsCheckIssuance
     {
-		public static readonly string DropReimbursementPayments = @"DROP TABLE IF EXISTS #reimbursement_payments";
+        public static readonly string DropReimbursementPayments = @"DROP TABLE IF EXISTS #reimbursement_payments";
 
         public static readonly string SelectIntoReimbursementPayments = @"
 		SELECT
@@ -31,9 +31,9 @@ AND ApprovedStatus = @ApprovedStatus
 AND cast(bm.TxnResponseDate as date) >= @FromDate
 ORDER BY mc.NHMemberID";
 
-		public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS #reimbursement_address_1";
+        public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS #reimbursement_address_1";
 
-		public static readonly string SelectIntoReimbursementAddress1 = @"SELECT DISTINCT
+        public static readonly string SelectIntoReimbursementAddress1 = @"SELECT DISTINCT
 c.NHMemberID, 
 ic.InsuranceCarrierName,
 c.CardReferenceNumber,
@@ -69,9 +69,9 @@ AND ic.InsuranceCarrierID NOT IN (302, 270)
 AND ih.HealthPlanNumber IS NOT NULL
 ORDER BY [Vendor Name]";
 
-		public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS #reimbursement_address_2";
+        public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS #reimbursement_address_2";
 
-		public static readonly string SelectIntoReimbursementAddress2 = @"SELECT DISTINCT
+        public static readonly string SelectIntoReimbursementAddress2 = @"SELECT DISTINCT
 c.NHMemberID, 
 ic.InsuranceCarrierName,
 c.CardReferenceNumber,
@@ -108,9 +108,9 @@ AND ic.InsuranceCarrierID NOT IN (302, 270)
 AND a.AddressTypeCode='MAIL'
 ORDER BY [Vendor Name]";
 
-		public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #reimbursement_address_3";
+        public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #reimbursement_address_3";
 
-		public static readonly string SelectIntoReimbursementAddress3 = @"SELECT DISTINCT
+        public static readonly string SelectIntoReimbursementAddress3 = @"SELECT DISTINCT
 c.NHMemberID, 
 ic.InsuranceCarrierName,
 c.CardReferenceNumber,
@@ -147,9 +147,9 @@ AND c.IsActive=1
 AND a.AddressTypeCode='PERM'
 ORDER BY NHMemberID";
 
-		public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #temp_final";
+        public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #temp_final";
 
-		public static readonly string SelectIntoTempFinal = @"SELECT ra1.NHMemberID,
+        public static readonly string SelectIntoTempFinal = @"SELECT ra1.NHMemberID,
 ra1.InsuranceCarrierName,
 ra1.CardReferenceNumber,
 ra1.TxnID,
@@ -214,9 +214,9 @@ FROM #reimbursement_address_1 ra1
 LEFT JOIN #reimbursement_address_2 ra2 ON ra1.txnreferenceid=ra2.txnreferenceid
 LEFT JOIN #reimbursement_address_3 ra3 ON ra1.txnreferenceid=ra3.txnreferenceid";
 
-		public static readonly string DropTableReimbursementFinal = @"DROP TABLE IF EXISTS #reimbursement_final";
+        public static readonly string DropTableReimbursementFinal = @"DROP TABLE IF EXISTS #reimbursement_final";
 
-		public static readonly string SelectIntoReimbursementFinal = @"SELECT 
+        public static readonly string SelectIntoReimbursementFinal = @"SELECT 
     t.NHMemberID, 
     t.InsuranceCarrierName,
     t.CardReferenceNumber,
@@ -256,9 +256,9 @@ GROUP BY
 ORDER BY 
     NHMemberID";
 
-		public static readonly string SelectRawData = @"SELECT * FROM #reimbursement_final";
+        public static readonly string SelectRawData = @"SELECT * FROM #reimbursement_final";
 
-		public static readonly string SelectMemberMailingInfo = @"SELECT 
+        public static readonly string SelectMemberMailingInfo = @"SELECT 
 CardholderFirstName,
 CardholderLastName,
 [Company Name],
@@ -281,7 +281,7 @@ CardholderLastName,
 [Address 3]
 ORDER BY CardholderFirstName";
 
-		public static readonly string SelectMemberCheckReimbursement = @"SELECT
+        public static readonly string SelectMemberCheckReimbursement = @"SELECT
 TxnID,
 [Vendor Name],
 TxnID AS 'Memo',

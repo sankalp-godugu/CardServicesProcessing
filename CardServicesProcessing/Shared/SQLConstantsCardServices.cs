@@ -1,8 +1,8 @@
 ﻿namespace CardServicesProcessor.Shared
 {
-	public static class SQLConstantsCardServicesReport
-	{
-		public static readonly string CardServicesQuery = @"-- 1) get all active CS cases
+    public static class SQLConstantsCardServices
+    {
+        public static readonly string CardServicesQuery = @"-- 1) get all active CS cases
 		DROP TABLE IF EXISTS #AllCSCases
 		SELECT
 				ic.InsuranceCarrierName,
@@ -138,9 +138,9 @@
 		FROM #Final fin
 		ORDER BY fin.CreateDate*/";
 
-		public static readonly string DropAllCSCases = @"-- 1) get all active CS casesDROP TABLE IF EXISTS #AllCSCases";
+        public static readonly string DropAllCSCases = @"DROP TABLE IF EXISTS #AllCSCases";
 
-		public static readonly string SelectIntoAllCSCases = @"SELECT
+        public static readonly string SelectIntoAllCSCases = @"SELECT
 				ic.InsuranceCarrierName,
 				mc.CaseID,
 				mc.CreateUser,
@@ -188,9 +188,9 @@
 		AND mc.IsActive = 1
 		AND addr.AddressTypeCode = 'PERM'";
 
-		public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS #MemberInsuranceMax";
+        public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS #MemberInsuranceMax";
 
-		public static readonly string SelectIntoMemberInsuranceMax = @"SELECT   MAX(mi.CreateDate) AS CreateDate, -- why are we doing this?
+        public static readonly string SelectIntoMemberInsuranceMax = @"SELECT   MAX(mi.CreateDate) AS CreateDate,
 				 mi.MemberID,
 				 allcs.InsuranceHealthPlanID
 		INTO     #MemberInsuranceMax
@@ -204,15 +204,15 @@
 
         public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS #ReimbursementAmount";
 
-		public static readonly string SelectIntoTblReimbursementAmount = @"SELECT allcs.CaseTicketID, ri.IsProcessEligible, SUM(ri.ApprovedAmount) AS ApprovedTotalAmount
-		INTO #ReimbursementAmount
-		FROM #AllCSCases allcs
-		JOIN ServiceRequest.ReimbursementItems ri
-		ON allcs.CaseTicketID = ri.CaseTicketId
-		GROUP BY allcs.CaseTicketID, ri.IsProcessEligible
-		HAVING ri.IsProcessEligible = 1";
+        public static readonly string SelectIntoTblReimbursementAmount = @"SELECT allcs.CaseTicketID, ri.IsProcessEligible, SUM(ri.ApprovedAmount) AS ApprovedTotalAmount
+			INTO #ReimbursementAmount
+			FROM #AllCSCases allcs
+			JOIN ServiceRequest.ReimbursementItems ri
+			ON allcs.CaseTicketID = ri.CaseTicketId
+			GROUP BY allcs.CaseTicketID, ri.IsProcessEligible
+			HAVING ri.IsProcessEligible = 1";
 
-		public static readonly string SelectCases = @"SELECT DISTINCT
+        public static readonly string SelectCases = @"SELECT DISTINCT
 				allcs.InsuranceCarrierName,
 	 			allcs.HealthPlanName,
 				allcs.CaseTicketNumber,

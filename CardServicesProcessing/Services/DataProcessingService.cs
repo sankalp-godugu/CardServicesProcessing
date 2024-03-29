@@ -2,13 +2,12 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Text.RegularExpressions;
 
 namespace CardServicesProcessor.Services
 {
-    public static partial class DataManipulationService
+    public static partial class DataProcessingService
     {
         [GeneratedRegex(@"\$(\d+(?:\.\d{1,2})?)")]
         private static partial Regex ApprovedAmountRegex();
@@ -82,7 +81,7 @@ namespace CardServicesProcessor.Services
                         DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseAndConvertDateTime(ColumnNames.ProcessedDate);
                         string? closingComments = cssCase.ClosingComments?.Trim();
 
-                        // requested total amount
+                        // requested total amount --------------------
                         bool isValidAmount = false;
                         decimal tempAmount = -1;
                         if (caseTicketData.IsValidJson() && caseTopic == "Reimbursement")
@@ -91,7 +90,7 @@ namespace CardServicesProcessor.Services
                         }
                         decimal? totalRequestedAmount = isValidAmount ? tempAmount : null;
 
-                        // transaction date
+                        // transaction date -------------------
                         string? transactionDate = null;
                         if (caseTicketData.IsValidJson()
                                 && caseTicketData.PathExists("TransactionDate"))
@@ -104,8 +103,8 @@ namespace CardServicesProcessor.Services
                             transactionDate = caseTicketData.GetJsonValue(@"New Reimbursement Request.TransactionDate")?.Trim();
                         }
 
-                        // #1: update ApprovedStatus
-                        if (!string.IsNullOrWhiteSpace(closingComments))
+                        // approved status -------------------
+                        if (closingComments.IsTruthy())
                         {
                             if (approvedStatus == Statuses.Approved
                                 && closingComments.ContainsAny(Variations.DeclinedVariations))
@@ -120,35 +119,37 @@ namespace CardServicesProcessor.Services
                             }
                         }
 
-                        // #3: case status
-                        if (totalApprovedAmount != 0
-                            && !string.IsNullOrWhiteSpace(closingComments)
+                        // case status ----------------------
+                        if (caseStatus == Statuses.PendingProcessing)
+                        {
+                            caseStatus = Statuses.Closed;
+                        }
+                        if (caseStatus == Statuses.Failed)
+                        {
+                            caseStatus = Statuses.Closed;
+                            if (caseTopic == "Reimbursement")
+                            {
+                                approvedStatus = approvedStatus == Statuses.Approved || (closingComments.IsTruthy() && closingComments.ContainsAny(Variations.ApprovedVariations))
+                                ? Statuses.Approved
+                                : Statuses.Declined;
+                            }
+                        }
+                        if (caseTopic == "Reimbursement"
+                            && !totalApprovedAmount.IsNA()
+                            && closingComments.IsTruthy()
                             && closingComments.ContainsAny(Variations.ApprovedVariations))
                         {
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Approved;
                         }
-                        if (caseStatus == Statuses.PendingProcessing)
-                        {
-                            caseStatus = Statuses.Closed;
-                            approvedStatus = Statuses.Approved;
-                        }
-                        if (caseStatus == Statuses.Failed)
-                        {
-                            caseStatus = Statuses.Closed;
-                            approvedStatus = approvedStatus == Statuses.Approved
-                                || (!string.IsNullOrWhiteSpace(closingComments) && closingComments.ContainsAny(Variations.ApprovedVariations))
-                                ? Statuses.Approved
-                                : Statuses.Declined;
-                        }
 
                         // #2: update ApprovedAmount to value if Approved and amount is 0
-                        // TODO: need to add another condition for specific cases where '$' does not prefix the approved amount, so need to capture these values too
-                        if (!string.IsNullOrWhiteSpace(caseTicketData)
+                        if (caseTopic == "Reimbursement"
+                            && caseTicketData.IsTruthy()
                             && caseTicketData.IsValidJson()
                             && approvedStatus == Statuses.Approved
-                            && totalApprovedAmount == 0
-                            && !string.IsNullOrWhiteSpace(closingComments)
+                            && totalApprovedAmount.IsNA()
+                            && closingComments.IsTruthy()
                             )
                         {
                             if (closingComments.Contains('$'))
@@ -170,21 +171,36 @@ namespace CardServicesProcessor.Services
                         }
 
                         // #4: update ApprovedAmount to 0 if declined
-                        if (approvedStatus == Statuses.Declined && totalApprovedAmount != 0)
+                        if (caseTopic == "Reimbursement"
+                            && approvedStatus == Statuses.Declined)
                         {
                             totalApprovedAmount = 0;
                         }
 
                         // #5: updated denial reason
-                        if (approvedStatus == Statuses.Approved && !string.IsNullOrWhiteSpace(denialReason))
+                        if (approvedStatus == Statuses.Approved && denialReason.IsTruthy())
                         {
                             denialReason = null;
                         }
 
+                        if (true)
+                        {
+                            if (totalApprovedAmount > 0)
+                            {
+                            }
+                            if (totalApprovedAmount is null)
+                            {
+                            }
+                            if (totalApprovedAmount == 0)
+                            {
+                            }
+                        }
+
+
                         dataRow[ColumnNames.ProcessedDate] = processedDate;
 
                         // consolidate wallets
-                        wallet = !string.IsNullOrWhiteSpace(wallet) ? wallet.GetWalletFromCommentsOrWalletCol(closingComments, Wallet.GetCategoryVariations()) : wallet;
+                        wallet = wallet.IsTruthy() ? wallet.GetWalletFromCommentsOrWalletCol(closingComments, Wallet.GetCategoryVariations()) : wallet;
 
                         if (caseTopic == "Card Replacement")
                         {
@@ -247,7 +263,7 @@ namespace CardServicesProcessor.Services
             {
                 string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString()?.Trim();
 
-                if (string.IsNullOrWhiteSpace(caseTicketNumber))
+                if (!caseTicketNumber.IsTruthy())
                 {
                     continue;
                 }
@@ -372,7 +388,7 @@ namespace CardServicesProcessor.Services
 
                 // Check if the Wallet value is missing
                 string? wallet = rowTblCurr[ColumnNames.Wallet].ToString();
-                if (wallet.IsNA())
+                if (!wallet.IsTruthy())
                 {
                     // Find the corresponding row in tblPrev based on the case number
                     DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
@@ -394,7 +410,7 @@ namespace CardServicesProcessor.Services
 
                 // Check if the case is in review and update its status if necessary
                 string? caseStatus = rowTblCurr[ColumnNames.CaseStatus].ToString();
-                if (string.IsNullOrWhiteSpace(caseStatus) || caseStatus.ToString().Trim().ContainsAny([Statuses.InReview, Statuses.New, Statuses.Failed]))
+                if (!caseStatus.IsTruthy() || caseStatus.ToString().Trim().ContainsAny([Statuses.InReview, Statuses.New, Statuses.Failed]))
                 {
                     // Find the corresponding row in tblPrev based on the case number
                     DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
@@ -402,7 +418,7 @@ namespace CardServicesProcessor.Services
                     // If a matching row is found, update case status, approved status, and approved amount
                     if (matchingRow != null)
                     {
-                        var hasProcessedDate = DateTime.TryParse(rowTblCurr[ColumnNames.ProcessedDate].ToString(), out DateTime processedDate);
+                        bool hasProcessedDate = DateTime.TryParse(rowTblCurr[ColumnNames.ProcessedDate].ToString(), out DateTime processedDate);
 
                         if (!hasProcessedDate)
                         {

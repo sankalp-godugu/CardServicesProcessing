@@ -43,11 +43,11 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, cache, reportSettings);
 
-                    log.LogDebug("Opening the Excel file...");
+                    log.LogInformation("Opening the Excel file...");
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
-                    log.LogDebug("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -65,10 +65,9 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogDebug($"Processing data for: {settings.SheetName}...");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogDebug("Getting all cases...");
+                log.LogInformation($"{settings.SheetName} > Querying for cases...");
                 sw.Start();
                 // Check if data exists in cache
                 if (!cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
@@ -78,43 +77,43 @@ namespace CardServicesProcessor
                     _ = cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogDebug("Processing missing/invalid data...");
+                log.LogInformation($"{settings.SheetName} > Processing missing/invalid data...");
                 sw.Restart();
-                DataTable tblCurr = DataManipulationService.ValidateCases(response);
+                DataTable tblCurr = DataProcessingService.ValidateCases(response);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                /*log.LogDebug("Reading data from last report sent to Elevance...");
+                /*log.LogInformation("Reading data from last report sent to Elevance...");
                 sw.Restart();
                 DataTable? tblPrev = DataManipulationService.ReadPrevYTDExcelToDataTable(CardServicesConstants.FilePathPrev, settings.SheetPrev);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogDebug("Populating missing data from previous 2024 report...");
+                log.LogInformation("Populating missing data from previous 2024 report...");
                 sw.Restart();
                 DataManipulationService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");*/
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");*/
 
-                log.LogDebug($"Reading 2023 Manual Reimbursements Report and Filling In Missing Info...");
+                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
                 sw.Restart();
-                DataManipulationService.FillMissingInfoFromManualReimbursementReport(settings.ManualReimbursements2023SrcFilePath, tblCurr);
+                DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogDebug($"Reading 2024 Manual Reimbursements Report and Filling In Missing Info...");
+                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
                 sw.Restart();
-                //DataManipulationService.FillMissingInfoFromManualReimbursementReport(settings.ManualReimbursements2024SrcFilePath, tblCurr);
+                //DataManipulationService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2024SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogDebug($"Writing to Excel and applying filters...");
+                log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
                 ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
                 sw.Stop();
-                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
             }
         }
 
@@ -133,8 +132,6 @@ namespace CardServicesProcessor
             public required string SheetDraft { get; set; }
             public required string SheetFinal { get; set; }
             public int SheetDraftIndex { get; set; }
-            public string ManualReimbursements2023SrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Adjustments 2023.xlsx";
-            public string ManualReimbursements2024SrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Reimbursements.xlsx";
         }
     }
 }

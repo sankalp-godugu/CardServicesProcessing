@@ -1,6 +1,5 @@
 ﻿using CardServicesProcessor.Models.Response;
 using Microsoft.Extensions.Logging;
-using System.Data;
 
 namespace CardServicesProcessor.DataAccess.Interfaces
 {

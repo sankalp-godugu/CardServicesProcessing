@@ -25,7 +25,7 @@ namespace CardServicesProcessor.DataAccess.Services
         /// <returns>The collection of objects returned from the executed query.</returns>
         public async Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger logger)
         {
-            logger.LogDebug($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
+            logger.LogInformation($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
             List<T> list = [];
             using (SqlConnection sqlConnection = new(connectionString))
             {
@@ -55,7 +55,7 @@ namespace CardServicesProcessor.DataAccess.Services
                     sqlConnection.Close();
                 }
             }
-            logger.LogDebug($"Ended calling stored procedure {procedureName}");
+            logger.LogInformation($"Ended calling stored procedure {procedureName}");
             return list;
         }
 
@@ -63,17 +63,17 @@ namespace CardServicesProcessor.DataAccess.Services
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using var transaction = connection.BeginTransaction();
+            using SqlTransaction transaction = connection.BeginTransaction();
 
             try
             {
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.DropAllCSCases, transaction: transaction);
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.SelectIntoAllCSCases, transaction: transaction);
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.DropTblMemberInsuranceMax, transaction: transaction);
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.SelectIntoMemberInsuranceMax, transaction: transaction);
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.DropTblReimbursementAmount, transaction: transaction);
-                await connection.ExecuteAsync(SQLConstantsCardServicesReport.SelectIntoTblReimbursementAmount, transaction: transaction);
-                var result = await connection.QueryAsync<T>(SQLConstantsCardServicesReport.SelectCases, transaction: transaction, commandTimeout: 0);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropAllCSCases, transaction: transaction);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoAllCSCases, transaction: transaction);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropTblMemberInsuranceMax, transaction: transaction);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoMemberInsuranceMax, transaction: transaction);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropTblReimbursementAmount, transaction: transaction);
+                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoTblReimbursementAmount, transaction: transaction);
+                IEnumerable<T> result = await connection.QueryAsync<T>(SQLConstantsCardServices.SelectCases, transaction: transaction, commandTimeout: 0);
                 return result;
             }
             catch (Exception ex)
@@ -93,22 +93,22 @@ namespace CardServicesProcessor.DataAccess.Services
 
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using var transaction = connection.BeginTransaction();
+            using SqlTransaction transaction = connection.BeginTransaction();
 
             try
             {
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, parameters);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTableReimbursementFinal);
-                await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, parameters);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTableReimbursementFinal);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal);
 
                 // Execute the query and retrieve multiple result sets
                 using GridReader reader = await connection.QueryMultipleAsync($"{SqlConstantsCheckIssuance.SelectRawData}{SqlConstantsCheckIssuance.SelectMemberMailingInfo}{SqlConstantsCheckIssuance.SelectMemberCheckReimbursement}", commandTimeout: 0);

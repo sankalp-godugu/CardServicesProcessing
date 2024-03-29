@@ -40,12 +40,24 @@ namespace CardServicesProcessor.Utilities.Constants
         {
             return string.IsNullOrEmpty(columnName)
                 ? null
-                : string.IsNullOrWhiteSpace(amount) ? null : decimal.TryParse(amount, out decimal result) ? result : null;
+                : !amount.IsTruthy() ? null : decimal.TryParse(amount, out decimal result) ? result : null;
         }
 
-        public static bool IsNA(this string? value)
+        public static bool IsTruthy(this string? value)
         {
-            return string.IsNullOrWhiteSpace(value) || value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrWhiteSpace(value) && !value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool IsNA(this decimal? value)
+        {
+            // Check if the value is null
+            if (!value.HasValue || value == 0 || value is null)
+            {
+                return true;
+            }
+
+            // Check if the value represents an invalid decimal value (e.g., NaN, Infinity)
+            return false;
         }
 
         public static void FormatForExcel(this DataRow dataRow, string columnName, string? value)
@@ -53,22 +65,22 @@ namespace CardServicesProcessor.Utilities.Constants
             dataRow[columnName] = columnName switch
             {
                 ColumnNames.CreateDate or ColumnNames.TransactionDate or ColumnNames.ProcessedDate
-                    => string.IsNullOrWhiteSpace(value) ? "NULL"
+                    => !value.IsTruthy() ? "NULL"
                         : DateTime.TryParse(value, out DateTime date)
                     ? date.ToShortDateString()
                         : value,
                 ColumnNames.RequestedTotalReimbursementAmount or ColumnNames.ApprovedTotalReimbursementAmount
-                    => string.IsNullOrWhiteSpace(value) || dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
+                    => !value.IsTruthy() || dataRow[ColumnNames.CaseTopic].ToString() != "Reimbursement" ? "NULL"
                         : decimal.TryParse(value, out decimal amount)
                     ? amount.ToString("C2")
                         : value,
-                _ => string.IsNullOrWhiteSpace(value) ? "NULL" : value,
+                _ => !value.IsTruthy() ? "NULL" : value,
             };
         }
 
         public static string ToPascalCase(this string input)
         {
-            if (string.IsNullOrWhiteSpace(input))
+            if (!input.IsTruthy())
             {
                 return input;
             }
@@ -80,7 +92,7 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static string ToEasternStandardDateString(this string datetimeString)
         {
-            if (string.IsNullOrWhiteSpace(datetimeString))
+            if (!datetimeString.IsTruthy())
             {
                 return "NULL";
             }
@@ -96,7 +108,10 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static bool IsValidJson(this string? jsonString)
         {
-            if (jsonString is null) return false;
+            if (jsonString is null)
+            {
+                return false;
+            }
 
             try
             {
@@ -121,7 +136,9 @@ namespace CardServicesProcessor.Utilities.Constants
                 {
                     token = token[property]; // Navigate through the nested structure
                     if (token == null)
+                    {
                         return false; // Return null if any property in the path is missing
+                    }
                 }
                 return true;
             }
@@ -134,7 +151,10 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static string? GetJsonValue(this string? jsonString, string propertyPath)
         {
-            if (jsonString is null) return null;
+            if (jsonString is null)
+            {
+                return null;
+            }
 
             try
             {
@@ -146,7 +166,9 @@ namespace CardServicesProcessor.Utilities.Constants
                 {
                     token = token[property]; // Navigate through the nested structure
                     if (token == null)
+                    {
                         return null; // Return null if any property in the path is missing
+                    }
                 }
 
                 return token.ToString();
@@ -160,12 +182,12 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static string StripNumbers(this string? input)
         {
-            return !string.IsNullOrWhiteSpace(input) ? StripNumbersRegex().Replace(input, "") : "";
+            return input.IsTruthy() ? StripNumbersRegex().Replace(input, "") : "";
         }
 
         public static bool ContainsNumbers(this string? input)
         {
-            return !string.IsNullOrEmpty(input) && input.All(char.IsDigit);
+            return input.IsTruthy() && input.All(char.IsDigit);
         }
     }
 }

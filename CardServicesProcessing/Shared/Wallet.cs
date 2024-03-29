@@ -49,7 +49,7 @@ namespace CardServicesProcessor.Shared
         {
             foreach (KeyValuePair<string, string[]> kvp in walletNameToVariations)
             {
-                if ((!string.IsNullOrWhiteSpace(closingComments) && closingComments.ContainsAny(kvp.Value))
+                if ((closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
                     || wallet.ContainsAny(kvp.Value))
                 {
                     return kvp.Key;

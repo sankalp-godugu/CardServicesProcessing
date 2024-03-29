@@ -2,7 +2,6 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Diagnostics;
 
@@ -24,6 +23,12 @@ namespace CardServicesProcessor.Services
                 Credentials = new NetworkCredential(userName, password)
             };
             webClient.DownloadFile(filePath, downloadPath);*/
+
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                _ = Directory.CreateDirectory(directoryPath);
+            }
 
             // Load the Excel file
             using (XLWorkbook workbook = new(filePath))
@@ -92,7 +97,7 @@ namespace CardServicesProcessor.Services
 
         public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? requestedTotalAmount)
         {
-            if (string.IsNullOrWhiteSpace(caseTicketNumber))
+            if (!caseTicketNumber.IsTruthy())
             {
                 return;
             }
@@ -148,9 +153,9 @@ namespace CardServicesProcessor.Services
 
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)
         {
-            using XLWorkbook workbook = new(filePath);
-            // Check if the worksheet exists
+            XLWorkbook workbook = CreateWorkbook(filePath);
 
+            // Check if the worksheet exists
             if (workbook.TryGetWorksheet(sheetName, out IXLWorksheet worksheet))
             {
                 // If it exists, delete it
@@ -213,7 +218,18 @@ namespace CardServicesProcessor.Services
             IXLRange rangeToSort = worksheet.Range(worksheet.Cell(2, 5), worksheet.Cell(lastRow, 5));
             _ = rangeToSort.Column(5).Sort(XLSortOrder.Ascending, false, true);
 
-            workbook.Save();
+            workbook.SaveAs(filePath);
+        }
+
+        private static XLWorkbook CreateWorkbook(string filePath)
+        {
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                _ = Directory.CreateDirectory(directoryPath);
+            }
+
+            return File.Exists(filePath) ? new XLWorkbook(filePath) : new XLWorkbook();
         }
 
         public static void OpenExcel(string filePath)
@@ -222,6 +238,12 @@ namespace CardServicesProcessor.Services
             string excelPath = File.Exists(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE") ?
                 @"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE" :
                 @"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE";
+
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                _ = Directory.CreateDirectory(directoryPath);
+            }
 
             // Start Excel process with file and sheet arguments
             ProcessStartInfo startInfo = new()
@@ -254,21 +276,7 @@ namespace CardServicesProcessor.Services
 
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
         {
-            string directoryPath = Path.GetDirectoryName(filePath);
-            if (!Directory.Exists(directoryPath))
-            {
-                _ = Directory.CreateDirectory(directoryPath);
-            }
-
-            XLWorkbook workbook;
-            if (File.Exists(filePath))
-            {
-                workbook = new XLWorkbook(filePath);
-            }
-            else
-            {
-                workbook = new XLWorkbook();
-            }
+            XLWorkbook workbook = CreateWorkbook(filePath);
 
             // Add or update data in the existing sheets
             AddDataToSheet(data.Item1, workbook, CheckIssuanceConstants.Sheets[1]); // Start from row 2 for existing data
@@ -284,7 +292,7 @@ namespace CardServicesProcessor.Services
             DataTable dt = data.ToDataTable();
 
             // Get the worksheet by name
-            bool worksheetExists = workbook.TryGetWorksheet(sheetName, out var worksheet);
+            bool worksheetExists = workbook.TryGetWorksheet(sheetName, out IXLWorksheet? worksheet);
 
             if (!worksheetExists)
             {
@@ -295,7 +303,7 @@ namespace CardServicesProcessor.Services
             int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
 
             // Insert the data into the worksheet starting from the next empty row
-            worksheet.Cell(startRow, 1).InsertTable(dt);
+            _ = worksheet.Cell(startRow, 1).InsertTable(dt);
         }
 
         private static DataTable ToDataTable<T>(this IEnumerable<T> items)
@@ -303,19 +311,19 @@ namespace CardServicesProcessor.Services
             DataTable dataTable = new(typeof(T).Name);
 
             // Get all public properties of the type T
-            var properties = typeof(T).GetProperties();
+            System.Reflection.PropertyInfo[] properties = typeof(T).GetProperties();
 
             // Create the columns in the DataTable based on the properties of T
-            foreach (var prop in properties)
+            foreach (System.Reflection.PropertyInfo prop in properties)
             {
-                dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+                _ = dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
             }
 
             // Populate the DataTable with the data from the IEnumerable<T>
-            foreach (var item in items)
+            foreach (T? item in items)
             {
                 DataRow row = dataTable.NewRow();
-                foreach (var prop in properties)
+                foreach (System.Reflection.PropertyInfo prop in properties)
                 {
                     row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
                 }
