@@ -17,7 +17,7 @@ namespace CardServicesProcessor.Utilities.Constants
             return values.Any(value => source.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
 
-        public static DateTime? ParseAndConvertDateTime(this string utcDateTimeString, string columnName)
+        public static DateTime? ParseAndConvertDateTime(this string? utcDateTimeString, string columnName)
         {
             if (DateTime.TryParse(utcDateTimeString, out DateTime utcDateTime))
             {
@@ -43,7 +43,7 @@ namespace CardServicesProcessor.Utilities.Constants
                 : string.IsNullOrWhiteSpace(amount) ? null : decimal.TryParse(amount, out decimal result) ? result : null;
         }
 
-        public static bool IsNA(this string value)
+        public static bool IsNA(this string? value)
         {
             return string.IsNullOrWhiteSpace(value) || value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
         }
@@ -94,21 +94,10 @@ namespace CardServicesProcessor.Utilities.Constants
             return estDate.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
         }
 
-        public static string? GetJsonValue(this string jsonString, string propertyName)
+        public static bool IsValidJson(this string? jsonString)
         {
-            try
-            {
-                JObject jsonObject = JObject.Parse(jsonString);
-                return jsonObject[propertyName]?.ToString();
-            }
-            catch (JsonReaderException)
-            {
-                return null;
-            }
-        }
+            if (jsonString is null) return false;
 
-        public static bool IsValidJson(this string jsonString)
-        {
             try
             {
                 _ = JToken.Parse(jsonString);
@@ -119,6 +108,55 @@ namespace CardServicesProcessor.Utilities.Constants
                 return false;
             }
         }
+
+        public static bool PathExists(this string jsonString, string propertyPath)
+        {
+            try
+            {
+                JObject jsonObject = JObject.Parse(jsonString);
+                string[] properties = propertyPath.Split('.'); // Split the property path
+
+                JToken token = jsonObject;
+                foreach (string property in properties)
+                {
+                    token = token[property]; // Navigate through the nested structure
+                    if (token == null)
+                        return false; // Return null if any property in the path is missing
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                // Handle JSON parsing errors
+                return false;
+            }
+        }
+
+        public static string? GetJsonValue(this string? jsonString, string propertyPath)
+        {
+            if (jsonString is null) return null;
+
+            try
+            {
+                JObject jsonObject = JObject.Parse(jsonString);
+                string[] properties = propertyPath.Split('.'); // Split the property path
+
+                JToken token = jsonObject;
+                foreach (string property in properties)
+                {
+                    token = token[property]; // Navigate through the nested structure
+                    if (token == null)
+                        return null; // Return null if any property in the path is missing
+                }
+
+                return token.ToString();
+            }
+            catch (JsonReaderException)
+            {
+                return null;
+            }
+        }
+
 
         public static string StripNumbers(this string? input)
         {

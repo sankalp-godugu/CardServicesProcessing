@@ -2,6 +2,7 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Diagnostics;
 
@@ -9,7 +10,7 @@ namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static DataTable ReadSecondExcelData(string filePath)
+        public static DataTable ReadReimbursementReport(string filePath)
         {
             DataTable dataTable = new();
 
@@ -89,66 +90,6 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void FillMissingWallet(string excelLink, DataTable dataTable)
-        {
-            // Load data from the second Excel file
-            DataTable tblManualReimbursements = ReadSecondExcelData(excelLink);
-
-            foreach (DataRow row in dataTable.Rows)
-            {
-                string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString()?.Trim();
-
-                if (string.IsNullOrWhiteSpace(caseTicketNumber))
-                {
-                    continue;
-                }
-
-                // Truncate "-1" from the end if present
-                caseTicketNumber = caseTicketNumber.Contains("-1") ? caseTicketNumber[..^2] : caseTicketNumber;
-
-                // Search for the corresponding row in the second Excel data
-                DataRow[] matchingRows = tblManualReimbursements.Select($"[Case Number] = '{caseTicketNumber}' AND NOT ISNULL([Benefit Wallet], '') = ''");
-
-                if (matchingRows.Length > 0)
-                {
-                    string? benefitWallet = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
-
-                    if (benefitWallet is null)
-                    {
-                        continue;
-                    }
-
-                    // Handle empty "Case Closed Date" cell
-                    if (benefitWallet.ContainsNumbers())
-                    {
-                        benefitWallet = matchingRows[0][ColumnNames.CaseClosedDate].ToString()?.Trim();
-                    }
-
-                    benefitWallet = benefitWallet.StripNumbers();
-
-                    // Map the benefit description using dictionaries
-                    if (Wallet.zPurseToBenefitDesc.TryGetValue(benefitWallet, out string? value)
-                        || Wallet.benefitTypeToBenefitDesc.TryGetValue(benefitWallet, out value))
-                    {
-                        row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(value, out string? walletName) ? walletName : value;
-                    }
-                    else
-                    {
-                        // Handle case where benefit wallet doesn't have a corresponding benefit description
-                        row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(benefitWallet, out string? walletName) ? walletName : benefitWallet;
-                    }
-                }
-                else
-                {
-                    // Handle case where no matching row is found in the second Excel data
-                    // You may choose to leave the "Wallet" column unchanged or set it to a default value
-                    // row[ColumnNames.Wallet] = "Not found";
-                }
-            }
-
-            // At this point, the "Wallet" column in your first datatable should be updated with the mapped benefit descriptions
-        }
-
         public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? requestedTotalAmount)
         {
             if (string.IsNullOrWhiteSpace(caseTicketNumber))
@@ -203,85 +144,6 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
                     break;
             }
-        }
-
-        public static DataTable FillMissingDataFromPrevReport(DataTable tblCurr, DataTable? tblPrev)
-        {
-            if (tblPrev is null)
-            {
-                return tblCurr;
-            }
-
-            // Ensure that the Wallet column exists in tblCurr
-            if (!tblCurr.Columns.Contains(ColumnNames.Wallet))
-            {
-                _ = tblCurr.Columns.Add(ColumnNames.Wallet);
-            }
-
-            // Iterate over the rows of tblCurr
-            foreach (DataRow row in tblCurr.Rows)
-            {
-                string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString() ?? "";
-
-                if (caseTicketNumber == null)
-                {
-                    continue;
-                }
-
-                // Check if the Wallet value is missing
-                string? wallet = row[ColumnNames.Wallet].ToString();
-                if (string.IsNullOrWhiteSpace(wallet) || wallet.Trim() == "NULL")
-                {
-                    // Find the corresponding row in tblPrev based on the case number
-                    DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
-
-                    // If a matching row is found, fill in the missing Wallet value
-                    if (matchingRow != null)
-                    {
-                        row[ColumnNames.Wallet] = matchingRow[ColumnNames.Wallet].ToString()?.GetWalletFromCommentsOrWalletCol(null, Wallet.GetCategoryVariations());
-                    }
-                    else
-                    {
-                        // Handle case when no matching row is found (optional)
-                        if (row[ColumnNames.CaseTopic].ToString() == "Reimbursement")
-                        {
-                            //Console.WriteLine($"Missing wallet for {caseTicketNumber}");
-                        }
-                    }
-                }
-
-                // Check if the case is in review and update its status if necessary
-                string? caseStatus = row[ColumnNames.CaseStatus].ToString();
-                if (string.IsNullOrWhiteSpace(caseStatus) || caseStatus.ToString().Trim().ContainsAny([Statuses.InReview, Statuses.New, Statuses.Failed]))
-                {
-                    // Find the corresponding row in tblPrev based on the case number
-                    DataRow? matchingRow = tblPrev.AsEnumerable().FirstOrDefault(r => r.Field<string>(ColumnNames.CaseTicketNumber) == caseTicketNumber);
-
-                    // If a matching row is found, update the case status and related fields
-                    if (matchingRow != null)
-                    {
-                        row[ColumnNames.CaseStatus] = matchingRow[ColumnNames.CaseStatus].ToString()?.Trim();
-                        row[ColumnNames.ApprovedStatus] = matchingRow[ColumnNames.ApprovedStatus].ToString()?.Trim();
-
-                        // Format the approved amount
-                        string? approvedAmount = row[ColumnNames.ApprovedTotalReimbursementAmount].ToString()?.Trim();
-                        row[ColumnNames.ApprovedTotalReimbursementAmount] = string.IsNullOrWhiteSpace(approvedAmount) ? "NULL" : decimal.TryParse(approvedAmount, out decimal ata) ? ata.ToString("C2") : approvedAmount;
-
-                        row[ColumnNames.ClosingComments] = matchingRow[ColumnNames.ClosingComments].ToString()?.Trim();
-                    }
-                    else
-                    {
-                        // Handle case when no matching row is found (optional)
-                        if (row[ColumnNames.CaseTopic].ToString() == "Reimbursement")
-                        {
-                            //Console.WriteLine($"Missing status for {caseTicketNumber}");
-                        }
-                    }
-                }
-            }
-
-            // Return tblCurr with missing Wallet cells filled in from tblPrev
-            return tblCurr;
         }
 
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)

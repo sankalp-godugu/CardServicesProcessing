@@ -11,13 +11,13 @@ namespace CardServicesProcessor
         [Function("CardServicesReportProcessor")]
         public async Task GenerateCardServicesReport([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
         {
-            //_ = await CaseProcessor.ProcessAllCases(configuration, dataLayer, logger, cache);
+            _ = await CaseProcessor.ProcessAllCases(configuration, dataLayer, logger, cache);
         }
 
         [Function("CheckIssuanceProcessor")]
         public async Task GenerateReimbursementCheckIssuance([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
         {
-            _ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger, cache);
+            //_ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger, cache);
         }
     }
 }

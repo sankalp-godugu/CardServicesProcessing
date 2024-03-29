@@ -19,8 +19,6 @@ namespace CardServicesProcessor
             {
                 await Task.Run(async () =>
                 {
-                    log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-
                     List<ReportInfo> reportSettings =
                     [
                         new()
@@ -45,11 +43,11 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, cache, reportSettings);
 
-                    log.LogInformation("Opening the Excel file...");
+                    log.LogDebug("Opening the Excel file...");
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
-                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                    log.LogDebug("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -67,50 +65,56 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogInformation($"Processing data for: {settings.SheetName}...");
+                log.LogDebug($"Processing data for: {settings.SheetName}...");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("Getting all cases...");
+                log.LogDebug("Getting all cases...");
                 sw.Start();
                 // Check if data exists in cache
                 if (!cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
                 {
                     // Data not found in cache, fetch from source and store in cache
-                    response = await dataLayer.QueryAsync<CardServicesResponse>(SQLConstants.CardServicesQuery, conn);
+                    response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn);
                     _ = cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogInformation("Processing missing/invalid data...");
+                log.LogDebug("Processing missing/invalid data...");
                 sw.Restart();
                 DataTable tblCurr = DataManipulationService.ValidateCases(response);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogInformation("Reading data from last report sent to Elevance...");
+                /*log.LogDebug("Reading data from last report sent to Elevance...");
                 sw.Restart();
                 DataTable? tblPrev = DataManipulationService.ReadPrevYTDExcelToDataTable(CardServicesConstants.FilePathPrev, settings.SheetPrev);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogInformation("Populating missing data from previous 2024 report...");
+                log.LogDebug("Populating missing data from previous 2024 report...");
                 sw.Restart();
-                DataTable tblFinal = ExcelService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
+                DataManipulationService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");*/
 
-                log.LogInformation("Populating missing wallets from Manual Reimbursements 2023 Report...");
+                log.LogDebug($"Reading 2023 Manual Reimbursements Report and Filling In Missing Info...");
                 sw.Restart();
-                ExcelService.FillMissingWallet(settings.ManualAdjustmentsSrcFilePath, tblFinal);
+                DataManipulationService.FillMissingInfoFromManualReimbursementReport(settings.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
 
-                log.LogInformation("Writing to Excel and applying filters...");
+                log.LogDebug($"Reading 2024 Manual Reimbursements Report and Filling In Missing Info...");
                 sw.Restart();
-                ExcelService.ApplyFiltersAndSaveReport(tblFinal, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
+                //DataManipulationService.FillMissingInfoFromManualReimbursementReport(settings.ManualReimbursements2024SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+
+                log.LogDebug($"Writing to Excel and applying filters...");
+                sw.Restart();
+                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
+                sw.Stop();
+                log.LogDebug($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
             }
         }
 
@@ -129,7 +133,8 @@ namespace CardServicesProcessor
             public required string SheetDraft { get; set; }
             public required string SheetFinal { get; set; }
             public int SheetDraftIndex { get; set; }
-            public string ManualAdjustmentsSrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\Downloads\Manual Adjustments 2023.xlsx";
+            public string ManualReimbursements2023SrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Adjustments 2023.xlsx";
+            public string ManualReimbursements2024SrcFilePath { get; set; } = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Reimbursements.xlsx";
         }
     }
 }

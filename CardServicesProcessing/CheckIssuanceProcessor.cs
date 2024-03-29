@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Diagnostics;
-using static Dapper.SqlMapper;
 
 namespace CardServicesProcessor
 {
@@ -20,8 +19,6 @@ namespace CardServicesProcessor
             {
                 await Task.Run(async () =>
                 {
-                    log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-
                     List<ReportInfo> reportInfo =
                     [
                         new()
@@ -36,11 +33,11 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, cache, reportInfo);
 
-                    log.LogInformation("Opening the Excel file...");
+                    log.LogDebug("Opening the Excel file...");
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
-                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                    log.LogDebug("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -58,10 +55,10 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogInformation($"Processing data for: {settings.SheetName}...");
+                log.LogDebug($"Processing data for: {settings.SheetName}...");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("Getting all cases...");
+                log.LogDebug("Getting all cases...");
                 sw.Start();
 
                 (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data = new();
@@ -70,18 +67,18 @@ namespace CardServicesProcessor
                 if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out IEnumerable<CardServicesResponse> response))
                 {
                     // Data not found in cache, fetch from source and store in cache
-                    data = await dataLayer.QueryMultiple(conn);
+                    data = await dataLayer.QueryMultipleAsyncCustom(conn);
 
                     _ = cache.Set($"{settings.SheetName}CheckIssuance", response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 ExcelService.AddToExcel(data, CheckIssuanceConstants.FilePathCurr);
-                log.LogInformation("Processing missing/invalid data...");
+                log.LogDebug("Processing missing/invalid data...");
                 sw.Restart();
                 DataTable tblCurr = DataManipulationService.ValidateCases(response);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogDebug("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
             }
         }
 
