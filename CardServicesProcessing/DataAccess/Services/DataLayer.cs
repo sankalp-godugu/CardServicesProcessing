@@ -78,6 +78,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (Exception ex)
             {
+                await transaction.DisposeAsync();
                 // Handle exceptions (e.g., logging, error handling)
                 Console.WriteLine($"Error executing SQL query: {ex.Message}");
                 throw;
@@ -86,10 +87,17 @@ namespace CardServicesProcessor.DataAccess.Services
 
         public async Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultipleAsyncCustom(string connectionString)
         {
-            DynamicParameters parameters = new();
+            /*DynamicParameters parameters = new();
             parameters.Add("@ApprovedStatus", "Approved");
-            DateTime fromDateTime = DateTime.Today.AddDays(-7);
+            DateTime fromDateTime = DateTime.UtcNow.AddDays(-7);
             parameters.Add("@FromDate", fromDateTime, DbType.DateTime);
+            string debugQuery = SqlConstantsCheckIssuance.Query;
+            foreach (var parameter in parameters.ParameterNames)
+            {
+                var value = parameters.Get<object>(parameter);
+                debugQuery = debugQuery.Replace($"@{parameter}", value.ToString());
+            }
+            */
 
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
@@ -97,35 +105,27 @@ namespace CardServicesProcessor.DataAccess.Services
 
             try
             {
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, parameters);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTableReimbursementFinal);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal);
-
-                // Execute the query and retrieve multiple result sets
-                using GridReader reader = await connection.QueryMultipleAsync($"{SqlConstantsCheckIssuance.SelectRawData}{SqlConstantsCheckIssuance.SelectMemberMailingInfo}{SqlConstantsCheckIssuance.SelectMemberCheckReimbursement}", commandTimeout: 0);
-
-                // Retrieve the first result set
-                IEnumerable<RawData> rawData = reader.Read<RawData>();
-
-                // Retrieve the second result set
-                IEnumerable<MemberMailingInfo> memberMailingInfo = reader.Read<MemberMailingInfo>();
-
-                // Retrieve the third result set
-                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = reader.Read<MemberCheckReimbursement>();
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTableReimbursementFinal, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, transaction: transaction);
+                IEnumerable<RawData> rawData = await connection.QueryAsync<RawData>(SqlConstantsCheckIssuance.SelectRawData, transaction: transaction);
+                IEnumerable<MemberMailingInfo> memberMailingInfo = await connection.QueryAsync<MemberMailingInfo>(SqlConstantsCheckIssuance.SelectMemberMailingInfo, transaction: transaction);
+                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await connection.QueryAsync<MemberCheckReimbursement>(SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, transaction: transaction);
 
                 return (rawData, memberMailingInfo, memberCheckReimbursements);
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 // Handle exceptions (e.g., logging, error handling)
                 Console.WriteLine($"Error executing SQL query: {ex.Message}");
                 throw;

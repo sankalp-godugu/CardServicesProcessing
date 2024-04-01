@@ -34,7 +34,7 @@ namespace CardServicesProcessor
 
                     log.LogInformation("Opening the Excel file...");
                     Stopwatch sw = Stopwatch.StartNew();
-                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
+                    ExcelService.OpenExcel(CheckIssuanceConstants.FilePathCurr);
                     sw.Stop();
                     log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
                 });
@@ -57,27 +57,26 @@ namespace CardServicesProcessor
                 log.LogInformation($"Processing data for: {settings.SheetName}...");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("Getting all cases...");
+                log.LogInformation($"Getting all cases for: {settings.SheetName}...");
                 sw.Start();
-
-                (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data = new();
-
-                // Check if data exists in cache
-                if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out IEnumerable<CardServicesResponse> response))
+                if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) response))
                 {
-                    // Data not found in cache, fetch from source and store in cache
-                    data = await dataLayer.QueryMultipleAsyncCustom(conn);
-
+                    response = await dataLayer.QueryMultipleAsyncCustom(conn);
                     _ = cache.Set($"{settings.SheetName}CheckIssuance", response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
-                ExcelService.AddToExcel(data, CheckIssuanceConstants.FilePathCurr);
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+
+                log.LogInformation("Adding to Excel...");
+                sw.Start();
+                ExcelService.AddToExcel(response, CheckIssuanceConstants.FilePathCurr);
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+
                 log.LogInformation("Processing missing/invalid data...");
                 sw.Restart();
-                _ = DataProcessingService.ValidateCases(response);
+                //_ = DataProcessingService.ValidateCases(response);
                 sw.Stop();
-                log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
             }
         }
 

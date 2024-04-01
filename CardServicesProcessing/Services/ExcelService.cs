@@ -2,6 +2,7 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 
@@ -253,50 +254,48 @@ namespace CardServicesProcessor.Services
                 UseShellExecute = false
             };
             _ = Process.Start(startInfo);
-
-            // method 2
-            /*Application excelApp = new()
-            {
-                Visible = true // Make Excel visible to the user.
-            };
-
-            Workbook workbook = excelApp.Workbooks.Open($"\"{filePath}\"");
-
-            try
-            {
-                Worksheet sheet = (Worksheet)workbook.Sheets[sheetName];
-                sheet.Activate();
-            }
-            catch (Exception ex)
-            {
-                // Handle the case where the specified sheet doesn't exist
-                Console.WriteLine($"Error: {ex.Message}");
-            }*/
         }
 
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
         {
             XLWorkbook workbook = CreateWorkbook(filePath);
 
+            DataTable rawData = data.Item1.ToDataTable();
+            DataTable memberMailingInfo = data.Item2.ToDataTable();
+            DataTable memberCheckReimbursements = data.Item3.ToDataTable();
+            List<DataTable> dataTables =
+            [
+                rawData,
+                memberMailingInfo,
+                memberCheckReimbursements
+            ];
+
             // Add or update data in the existing sheets
-            AddDataToSheet(data.Item1, workbook, CheckIssuanceConstants.Sheets[1]); // Start from row 2 for existing data
-            AddDataToSheet(data.Item2, workbook, CheckIssuanceConstants.Sheets[2]);
-            AddDataToSheet(data.Item3, workbook, CheckIssuanceConstants.Sheets[3]);
+            AddDataToWorksheets(dataTables, filePath);
+        }
+
+        private static void AddDataToWorksheets(List<DataTable> dataTables, string filePath)
+        {
+            using XLWorkbook workbook = new();
+
+            // Add data to each worksheet
+            for (int i = 0; i < dataTables.Count; i++)
+            {
+                AddDataToWorksheet(dataTables[i], workbook, CheckIssuanceConstants.Sheets[i + 1]);
+            }
 
             // Save the workbook
             workbook.SaveAs(filePath);
         }
 
-        private static void AddDataToSheet<T>(IEnumerable<T> data, XLWorkbook workbook, string sheetName)
+        private static void AddDataToWorksheet(DataTable dt, XLWorkbook workbook, string sheetName)
         {
-            DataTable dt = data.ToDataTable();
-
             // Get the worksheet by name
-            bool worksheetExists = workbook.TryGetWorksheet(sheetName, out IXLWorksheet? worksheet);
+            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
 
             if (!worksheetExists)
             {
-                worksheet = workbook.Worksheets.Add(sheetName);
+                worksheet = workbook.AddWorksheet(sheetName);
             }
 
             // Find the first empty row in the worksheet
@@ -304,33 +303,6 @@ namespace CardServicesProcessor.Services
 
             // Insert the data into the worksheet starting from the next empty row
             _ = worksheet.Cell(startRow, 1).InsertTable(dt);
-        }
-
-        private static DataTable ToDataTable<T>(this IEnumerable<T> items)
-        {
-            DataTable dataTable = new(typeof(T).Name);
-
-            // Get all public properties of the type T
-            System.Reflection.PropertyInfo[] properties = typeof(T).GetProperties();
-
-            // Create the columns in the DataTable based on the properties of T
-            foreach (System.Reflection.PropertyInfo prop in properties)
-            {
-                _ = dataTable.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
-            }
-
-            // Populate the DataTable with the data from the IEnumerable<T>
-            foreach (T? item in items)
-            {
-                DataRow row = dataTable.NewRow();
-                foreach (System.Reflection.PropertyInfo prop in properties)
-                {
-                    row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
-                }
-                dataTable.Rows.Add(row);
-            }
-
-            return dataTable;
         }
     }
 }

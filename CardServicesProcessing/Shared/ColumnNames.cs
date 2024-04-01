@@ -2,6 +2,7 @@
 {
     public class ColumnNames
     {
+        // Card Services report
         public const string InsuranceCarrier = "Insurance Carrier";
         public const string HealthPlan = "Health Plan";
         public const string CaseTicketNumber = "Case Ticket Number";
@@ -13,7 +14,7 @@
         public const string DateOfBirth = "Date Of Birth";
         public const string City = "City";
         public const string State = "State";
-        public const string NhMemberId = "NH/EH Member ID";
+        public const string NhMemberId = "NH Member ID";
         public const string InsuranceNumber = "Insurance Number";
         public const string CaseTopic = "Case Topic";
         public const string CaseType = "Case Type";
@@ -26,6 +27,17 @@
         public const string ApprovedStatus = "Approved Status";
         public const string ProcessedDate = "Processed Date";
         public const string ClosingComments = "Closing Comments";
+
+        // Check issuance report
+        /*public class CheckIssuance
+        {
+            public class RawData
+            {
+                public const string NhMemberId = "NH Member ID";
+                public const string Carrier = "Carrier";
+                public const string MemberProxy = "Member Proxy";
+            }
+        }*/
 
         // From Manual Adjustments 2023 report
         public const string BenefitWallet = "Benefit Wallet";

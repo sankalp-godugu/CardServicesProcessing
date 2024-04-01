@@ -2,6 +2,7 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
+using System.ComponentModel;
 using System.Data;
 using System.Text.RegularExpressions;
 
@@ -14,6 +15,49 @@ namespace CardServicesProcessor.Services
 
         [GeneratedRegex(@"\b(\d+(?:\.\d{1,2})?)\b")]
         private static partial Regex ApprovedAmountWithoutDollarSignRegex();
+
+        public static DataTable ToDataTable<T>(this IEnumerable<T> items)
+        {
+            DataTable dataTable = new(typeof(T).Name);
+
+            // Get all public properties of the type T
+            System.Reflection.PropertyInfo[] properties = typeof(T).GetProperties();
+
+            // Define a dictionary to store column names
+            Dictionary<System.Reflection.PropertyInfo, string> columnNames = [];
+
+            // Get column names from properties
+            foreach (System.Reflection.PropertyInfo prop in properties)
+            {
+                // Use the display name if available, otherwise use the property name
+                string columnName = prop.GetCustomAttributes(typeof(DisplayNameAttribute), true)
+                                        .FirstOrDefault() is DisplayNameAttribute displayNameAttribute ? displayNameAttribute.DisplayName : prop.Name;
+
+                // Add column name to dictionary
+                columnNames[prop] = columnName;
+
+                // Add the column to the DataTable if it doesn't exist already
+                if (!dataTable.Columns.Contains(columnName))
+                {
+                    _ = dataTable.Columns.Add(columnName, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+                }
+            }
+
+            // Populate the DataTable with the data from the IEnumerable<T>
+            foreach (T? item in items)
+            {
+                DataRow row = dataTable.NewRow();
+                foreach (System.Reflection.PropertyInfo prop in properties)
+                {
+
+                    // Set the value in the row using the column name
+                    row[columnNames[prop]] = prop.GetValue(item) ?? DBNull.Value;
+                }
+                dataTable.Rows.Add(row);
+            }
+
+            return dataTable;
+        }
 
         public static DataTable ValidateCases(IEnumerable<CardServicesResponse> cssCases)
         {
