@@ -50,7 +50,8 @@ namespace CardServicesProcessor
 
         private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache, List<ReportInfo> reportSettings)
         {
-            ExcelService.ClearData(ExcelService.CreateWorkbook(CheckIssuanceConstants.FilePathCurr));
+            ExcelService.DeleteWorkbook(CheckIssuanceConstants.FilePathCurr);
+
             foreach (ReportInfo settings in reportSettings)
             {
                 Stopwatch sw = new();

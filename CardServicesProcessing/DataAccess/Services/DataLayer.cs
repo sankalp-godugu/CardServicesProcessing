@@ -106,21 +106,23 @@ namespace CardServicesProcessor.DataAccess.Services
             try
             {
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction: transaction);
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal, transaction: transaction);
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementFinal, transaction: transaction);
+
+                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction: transaction);
 
                 _ = connection.Database == Databases.Elevance
                     ? await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV, transaction: transaction)
                     : await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT, transaction: transaction);
 
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction: transaction);
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction: transaction);
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal, transaction: transaction);
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementFinal, transaction: transaction);
                 _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, transaction: transaction);
+
                 IEnumerable<RawData> rawData = await connection.QueryAsync<RawData>(SqlConstantsCheckIssuance.SelectRawData, transaction: transaction);
                 IEnumerable<MemberMailingInfo> memberMailingInfo = await connection.QueryAsync<MemberMailingInfo>(SqlConstantsCheckIssuance.SelectMemberMailingInfo, transaction: transaction);
                 IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await connection.QueryAsync<MemberCheckReimbursement>(SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, transaction: transaction);

@@ -255,12 +255,9 @@ namespace CardServicesProcessor.Services
             _ = Process.Start(startInfo);
         }
 
-        public static void ClearData(XLWorkbook workbook)
+        public static void DeleteWorkbook(string filePath)
         {
-            foreach (IXLWorksheet worksheet in workbook.Worksheets)
-            {
-                worksheet.Clear();
-            }
+            if (File.Exists(filePath)) File.Delete(filePath);
         }
 
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
@@ -318,15 +315,13 @@ namespace CardServicesProcessor.Services
             }
             else
             {
-                AddDataToExistingTable(dt, worksheet);
+                worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
+                //AddDataToExistingTable(dt, worksheet, startRow);
             }
         }
 
-        private static void AddDataToExistingTable(DataTable dt, IXLWorksheet worksheet)
+        private static void AddDataToExistingTable(DataTable dt, IXLWorksheet worksheet, int startRow)
         {
-            // Get the row number where the table starts
-            int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
-
             // Iterate over the DataTable rows and insert them below the table
             int rowOffset = 1; // Skip the header row
             foreach (DataRow row in dt.Rows)
