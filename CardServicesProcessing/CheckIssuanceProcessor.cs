@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Data;
 using System.Diagnostics;
 
 namespace CardServicesProcessor
@@ -62,17 +61,18 @@ namespace CardServicesProcessor
 
                 log.LogInformation("Getting all approved reimbursements for: {SheetName}", settings.SheetName);
                 sw.Start();
-                if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) response))
+                if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
-                    response = await dataLayer.QueryMultipleAsyncCustom(conn, log);
-                    _ = cache.Set($"{settings.SheetName}CheckIssuance", response, TimeSpan.FromDays(1));
+                    dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log);
+                    _ = cache.Set($"{settings.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                CheckIssuance dataPrev = ExcelService.ReadFromExcel<CheckIssuance>(CheckIssuanceConstants.FilePathPrev);
 
                 log.LogInformation("Adding data to Excel for: {SheetName}", settings.SheetName);
                 sw.Start();
-                ExcelService.AddToExcel(response, CheckIssuanceConstants.FilePathCurr);
+                ExcelService.AddToExcel(dataPrev);
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
             }
         }
@@ -87,7 +87,7 @@ namespace CardServicesProcessor
         private class ReportInfo
         {
             public required string SheetName { get; set; }
-            public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.Sheets;
+            public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.SheetIndexToNameMap;
         }
     }
 }

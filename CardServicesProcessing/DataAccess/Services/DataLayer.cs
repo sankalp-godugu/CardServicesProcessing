@@ -101,7 +101,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
         }
 
-        public async Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultipleAsyncCustom(string connectionString, ILogger log)
+        public async Task<CheckIssuance> QueryMultipleAsyncCustom<T>(string connectionString, ILogger log)
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
@@ -125,11 +125,15 @@ namespace CardServicesProcessor.DataAccess.Services
                 await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoTempFinal, "ElapsedTime", transaction, log);
                 await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, "ElapsedTime", transaction, log);
 
-                var rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, "ElapsedTime", transaction, log);
-                var memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectMemberMailingInfo, "ElapsedTime", transaction, log);
-                var memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, "ElapsedTime", transaction, log);
-
-                return (rawData, memberMailingInfo, memberCheckReimbursements);
+                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, "ElapsedTime", transaction, log);
+                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectMemberMailingInfo, "ElapsedTime", transaction, log);
+                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, "ElapsedTime", transaction, log);
+                return new CheckIssuance
+                {
+                    RawData = rawData,
+                    MemberMailingInfos = memberMailingInfo,
+                    MemberCheckReimbursements = memberCheckReimbursements
+                };
             }
             catch (SqlException ex)
             {
@@ -222,15 +226,15 @@ namespace CardServicesProcessor.DataAccess.Services
 
         public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
         {
-            var sw = Stopwatch.StartNew();
-            await connection.ExecuteAsync(sqlCommand, transaction: transaction);
+            Stopwatch sw = Stopwatch.StartNew();
+            _ = await connection.ExecuteAsync(sqlCommand, transaction: transaction);
             ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
         }
 
         public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
         {
-            var sw = Stopwatch.StartNew();
-            var result = await connection.QueryAsync<T>(sqlCommand, transaction: transaction);
+            Stopwatch sw = Stopwatch.StartNew();
+            IEnumerable<T> result = await connection.QueryAsync<T>(sqlCommand, transaction: transaction);
             ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
             return result;
         }

@@ -1,15 +1,26 @@
-﻿namespace CardServicesProcessor.Shared
+﻿using CardServicesProcessor.Models.Response;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+namespace CardServicesProcessor.Shared
 {
     public static class CheckIssuanceConstants
     {
         public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\_Automation\ReimbursementCheckIssuanceAutomation_{DateTime.Today:MMddyyyy}.xlsx";
 
-        public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today.AddDays(-7).ToString("M-dd")}\ReimbursementCheckIssuance_{DateTime.Today.AddDays(-7):MMddyyyy}.xlsx";
+        public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today.AddDays(-7):M-dd}\ReimbursementCheckIssuance_{DateTime.Today.AddDays(-7):MMddyyyy}.xlsx";
 
-        public static readonly Dictionary<int, string> Sheets = new() {
+        public static readonly Dictionary<int, string> SheetIndexToNameMap = new() {
             { 1, "Raw Data" },
             { 2, "Member Mailing Info" },
             { 3, "Member Check Reimbursement" }
+        };
+
+        public static readonly Dictionary<string, Type> SheetNameToTypeMap = new Dictionary<string, Type>
+        {
+            { "Raw Data", typeof(RawData) },
+            { "Member Mailing Info", typeof(MemberMailingInfo) },
+            { "Member Check Reimbursement", typeof(MemberCheckReimbursement) },
+            // Add more mappings as needed
         };
 
         public static class Nations

@@ -4,43 +4,46 @@ using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
 using System.Data;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static DataTable ReadFromExcel(string filePath, string sheetName)
+        public static IEnumerable<T> ReadFromExcel<T>(string filePath, string sheetName)
         {
-            DataTable dataTable = new();
+            List<T> result = new List<T>();
 
-            using (XLWorkbook workbook = new(filePath))
+            using (XLWorkbook workbook = new XLWorkbook(filePath))
             {
-                // Assuming the data is in the first worksheet of the workbook
                 IXLWorksheet worksheet = workbook.Worksheet(sheetName);
 
-                // Determine the range of cells containing data
-                var range = worksheet.RangeUsed();
+                // Get the properties of type T
+                PropertyInfo[] properties = typeof(T).GetProperties();
 
-                // Add columns to the DataTable based on the headers in the first row
-                foreach (var cell in range.FirstRow().CellsUsed())
-                {
-                    dataTable.Columns.Add(cell.Value.ToString());
-                }
-
-                // Iterate over rows starting from the second row (assuming first row contains headers)
-                foreach (var row in range.RowsUsed().Skip(1))
-                {
-                    DataRow newRow = dataTable.Rows.Add();
-
-                    // Iterate over cells in the row and populate the DataRow
-                    for (int i = 0; i < row.CellCount(); i++)
+                // Assuming the data starts from the second row (after headers)
+                var rows = worksheet.RowsUsed().Skip(1)
+                    .Select(row =>
                     {
-                        newRow[i] = row.Cell(i + 1).Value.ToString();
-                    }
-                }
+                        // Create an instance of T
+                        T obj = Activator.CreateInstance<T>();
+
+                        int columnIndex = 0;
+                        foreach (var prop in properties)
+                        {
+                            // Get the value from the cell and convert it to the property type
+                            object cellValue = Convert.ChangeType(row.Cell(++columnIndex).Value, prop.PropertyType);
+                            // Set the property value
+                            prop.SetValue(obj, cellValue);
+                        }
+
+                        return obj;
+                    });
+
+                result.AddRange(rows);
             }
 
-            return dataTable;
+            return result;
         }
 
         public static DataTable ReadPrevCheckIssuanceReport(string filePath, string worksheetName)
@@ -337,11 +340,49 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
+        public static T ReadFromExcel<T>(string filePath) where T : new()
         {
-            DataTable rawData = data.Item1.ToDataTable();
-            DataTable memberMailingInfo = data.Item2.ToDataTable();
-            DataTable memberCheckReimbursements = data.Item3.ToDataTable();
+            T result = new();
+
+            using (XLWorkbook workbook = new(filePath))
+            {
+                if (result is CheckIssuance checkIssuance)
+                {
+                    checkIssuance.RawData = ReadSheet<RawData>(workbook, "RawData");
+                    checkIssuance.MemberMailingInfos = ReadSheet<MemberMailingInfo>(workbook, "MemberMailingInfo");
+                    checkIssuance.MemberCheckReimbursements = ReadSheet<MemberCheckReimbursement>(workbook, "MemberCheckReimbursement");
+                }
+                // Add more conditions for other types if necessary
+            }
+
+            return result;
+        }
+
+        private static List<TItem> ReadSheet<TItem>(XLWorkbook workbook, string sheetName) where TItem : new()
+        {
+            List<TItem> result = [];
+            IXLWorksheet? worksheet = workbook.Worksheets.FirstOrDefault(ws => ws.Name == sheetName);
+
+            if (worksheet != null)
+            {
+                foreach (IXLRow? row in worksheet.RowsUsed())
+                {
+                    TItem item = new();
+                    // Implement your mapping logic here based on the structure of TItem
+                    // Populate item properties with cell values from the row
+                    // Example: item.Property1 = row.Cell(1).Value;
+                    result.Add(item);
+                }
+            }
+
+            return result;
+        }
+
+        public static void AddToExcel<T>(T data) where T : CheckIssuance
+        {
+            DataTable rawData = data.RawData.ToDataTable();
+            DataTable memberMailingInfo = data.MemberMailingInfos.ToDataTable();
+            DataTable memberCheckReimbursements = data.MemberCheckReimbursements.ToDataTable();
             List<DataTable> dataTables =
             [
                 rawData,
@@ -350,27 +391,31 @@ namespace CardServicesProcessor.Services
             ];
 
             // Add or update data in the existing sheets
-            AddDataToWorksheets(dataTables, filePath);
+            AddDataToWorksheets(dataTables);
         }
 
-        private static void AddDataToWorksheets(List<DataTable> dataTables, string filePath)
+        private static void AddDataToWorksheets<T>(List<T> dataTables) where T : DataTable
         {
-            using XLWorkbook workbook = CreateWorkbook(filePath);
-
+            using XLWorkbook workbook = CreateWorkbook(CheckIssuanceConstants.FilePathCurr);
             // Add data to each worksheet
             for (int i = 0; i < dataTables.Count; i++)
             {
-                AddDataToWorksheet(dataTables[i], workbook, CheckIssuanceConstants.Sheets[i + 1]);
+                AddDataToWorksheet(dataTables[i], workbook, CheckIssuanceConstants.SheetIndexToNameMap[i + 1]);
             }
 
             // Save the workbook
-            workbook.SaveAs(filePath);
+            workbook.SaveAs(CheckIssuanceConstants.FilePathCurr);
         }
 
-        private static void AddDataToWorksheet(DataTable dt, XLWorkbook workbook, string sheetName)
+        private static void AddDataToWorksheet<T>(T dt, XLWorkbook workbook, string sheetName) where T : DataTable
         {
-            // get data table from previous report
-            DataTable dtPrev = ReadFromExcel(CheckIssuanceConstants.FilePathPrev, sheetName);
+            DataTable dtPrev = sheetName switch
+            {
+                "Raw Data" => ReadFromExcel<RawData>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
+                "Member Mailing Info" => ReadFromExcel<MemberMailingInfo>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
+                "Member Check Reimbursement" => ReadFromExcel<MemberCheckReimbursement>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
+                _ => throw new NotImplementedException()
+            };
 
             // Get the worksheet by name
             bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
@@ -381,10 +426,10 @@ namespace CardServicesProcessor.Services
             }
 
             // Find the first empty row in the worksheet
-            int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
+            _ = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
 
             // Insert the data into the worksheet starting from the next empty row
-            IXLTable? existingTable = worksheet.Tables.FirstOrDefault();
+            _ = worksheet.Tables.FirstOrDefault();
 
             InsertIntoExcelWithComparison(dt, worksheet, dtPrev);
 
