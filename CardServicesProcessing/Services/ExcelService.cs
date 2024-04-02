@@ -2,7 +2,6 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 
@@ -222,7 +221,7 @@ namespace CardServicesProcessor.Services
             workbook.SaveAs(filePath);
         }
 
-        private static XLWorkbook CreateWorkbook(string filePath)
+        public static XLWorkbook CreateWorkbook(string filePath)
         {
             string directoryPath = Path.GetDirectoryName(filePath);
             if (!Directory.Exists(directoryPath))
@@ -256,6 +255,14 @@ namespace CardServicesProcessor.Services
             _ = Process.Start(startInfo);
         }
 
+        public static void ClearData(XLWorkbook workbook)
+        {
+            foreach (IXLWorksheet worksheet in workbook.Worksheets)
+            {
+                worksheet.Clear();
+            }
+        }
+
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
         {
             XLWorkbook workbook = CreateWorkbook(filePath);
@@ -276,7 +283,7 @@ namespace CardServicesProcessor.Services
 
         private static void AddDataToWorksheets(List<DataTable> dataTables, string filePath)
         {
-            using XLWorkbook workbook = new();
+            using XLWorkbook workbook = CreateWorkbook(filePath);
 
             // Add data to each worksheet
             for (int i = 0; i < dataTables.Count; i++)
@@ -302,7 +309,44 @@ namespace CardServicesProcessor.Services
             int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
 
             // Insert the data into the worksheet starting from the next empty row
-            _ = worksheet.Cell(startRow, 1).InsertTable(dt);
+            var existingTable = worksheet.Tables.FirstOrDefault();
+
+            if (existingTable == null)
+            {
+                // If the table doesn't exist, then insert it
+                _ = worksheet.Cell(startRow, 1).InsertTable(dt);
+            }
+            else
+            {
+                AddDataToExistingTable(dt, worksheet);
+            }
+        }
+
+        private static void AddDataToExistingTable(DataTable dt, IXLWorksheet worksheet)
+        {
+            // Get the row number where the table starts
+            int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
+
+            // Iterate over the DataTable rows and insert them below the table
+            int rowOffset = 1; // Skip the header row
+            foreach (DataRow row in dt.Rows)
+            {
+                // Insert a row below the table
+                worksheet.Row(startRow + rowOffset).InsertRowsBelow(1);
+
+                // Populate the inserted row with data from the DataRow
+                for (int i = 0; i < dt.Columns.Count; i++)
+                {
+                    // Cast the value from the DataRow to the appropriate type expected by ClosedXML
+                    var cellValue = (dt.Columns[i].DataType == typeof(DateTime))
+                        ? Convert.ToDateTime(row[i]) // Example conversion for DateTime type, adjust as needed
+                        : row[i]; // For other types, assume no conversion needed
+
+                    worksheet.Cell(startRow + rowOffset, i + 1).SetValue(cellValue.ToString());
+                }
+
+                rowOffset++;
+            }
         }
     }
 }

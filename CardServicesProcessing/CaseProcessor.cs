@@ -23,21 +23,21 @@ namespace CardServicesProcessor
                     [
                         new()
                         {
-                            SheetName = CardServicesConstants.Elevance.SheetName,
-                            SheetPrev = CardServicesConstants.Elevance.SheetPrev,
-                            SheetRaw = CardServicesConstants.Elevance.SheetRaw,
-                            SheetDraft = CardServicesConstants.Elevance.SheetDraft,
-                            SheetFinal = CardServicesConstants.Elevance.SheetFinal,
-                            SheetDraftIndex = CardServicesConstants.Elevance.SheetDraftIndex
-                        },
-                        new()
-                        {
                             SheetName = CardServicesConstants.Nations.SheetName,
                             SheetPrev = CardServicesConstants.Nations.SheetPrev,
                             SheetRaw = CardServicesConstants.Nations.SheetRaw,
                             SheetDraft = CardServicesConstants.Nations.SheetDraft,
                             SheetFinal = CardServicesConstants.Nations.SheetFinal,
                             SheetDraftIndex = CardServicesConstants.Nations.SheetDraftIndex
+                        },
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Elevance.SheetName,
+                            SheetPrev = CardServicesConstants.Elevance.SheetPrev,
+                            SheetRaw = CardServicesConstants.Elevance.SheetRaw,
+                            SheetDraft = CardServicesConstants.Elevance.SheetDraft,
+                            SheetFinal = CardServicesConstants.Elevance.SheetFinal,
+                            SheetDraftIndex = CardServicesConstants.Elevance.SheetDraftIndex
                         }
                     ];
 

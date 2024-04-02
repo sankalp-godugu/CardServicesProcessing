@@ -22,11 +22,11 @@ namespace CardServicesProcessor
                     [
                         new()
                         {
-                            SheetName = CheckIssuanceConstants.Elevance.SheetName,
+                            SheetName = CheckIssuanceConstants.Nations.SheetName,
                         },
                         new()
                         {
-                            SheetName = CheckIssuanceConstants.Nations.SheetName,
+                            SheetName = CheckIssuanceConstants.Elevance.SheetName,
                         }
                     ];
 
@@ -50,6 +50,7 @@ namespace CardServicesProcessor
 
         private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache, List<ReportInfo> reportSettings)
         {
+            ExcelService.ClearData(ExcelService.CreateWorkbook(CheckIssuanceConstants.FilePathCurr));
             foreach (ReportInfo settings in reportSettings)
             {
                 Stopwatch sw = new();
@@ -57,7 +58,7 @@ namespace CardServicesProcessor
                 log.LogInformation($"Processing data for: {settings.SheetName}...");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation($"Getting all cases for: {settings.SheetName}...");
+                log.LogInformation($"Getting all approved reimbursements for: {settings.SheetName}...");
                 sw.Start();
                 if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) response))
                 {

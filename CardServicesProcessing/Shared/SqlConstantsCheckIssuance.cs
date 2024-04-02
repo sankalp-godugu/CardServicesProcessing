@@ -1,10 +1,17 @@
-﻿namespace CardServicesProcessor.Shared
+﻿using Microsoft.Extensions.Configuration;
+
+namespace CardServicesProcessor.Shared
 {
     public static class SqlConstantsCheckIssuance
     {
         public static readonly string Query = @"";
 
         public static readonly string DropReimbursementPayments = @"DROP TABLE IF EXISTS #reimbursement_payments";
+        public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS #reimbursement_address_1";
+        public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS #reimbursement_address_2";
+        public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #reimbursement_address_3";
+        public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #temp_final";
+        public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS #reimbursement_final";
 
         public static readonly string SelectIntoReimbursementPayments = @"
             SELECT
@@ -32,10 +39,7 @@
             AND ApprovedStatus = 'Approved'
             AND cast(bm.TxnResponseDate as date) >= DATEADD(day, -7, 101)
             ORDER BY mc.NHMemberID";
-
-        public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS #reimbursement_address_1";
-
-        public static readonly string SelectIntoReimbursementAddress1 = @"
+        public static readonly string SelectIntoReimbursementAddress1_NAT = @$"
             SELECT DISTINCT
             c.NHMemberID, 
             ic.InsuranceCarrierName,
@@ -57,7 +61,7 @@
             '' AS 'type'
             INTO #reimbursement_address_1
             FROM #reimbursement_payments rp 
-            LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid and c.CardIssuer='BANCORP'
+            LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid and c.CardIssuer= 'BANCORP'
             LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber=c.CardReferenceNumber
             LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
             LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
@@ -71,9 +75,42 @@
             AND ic.InsuranceCarrierID NOT IN (302, 270) 
             AND ih.HealthPlanNumber IS NOT NULL
             ORDER BY VendorName";
-
-        public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS #reimbursement_address_2";
-
+        public static readonly string SelectIntoReimbursementAddress1_ELV = @$"
+            SELECT DISTINCT
+            c.NHMemberID, 
+            ic.InsuranceCarrierName,
+            c.CardReferenceNumber,
+            rp.TxnID,
+            rp.TxnReferenceID,
+            rp.TxnGroupReferenceID,
+            rp.PurseSlot,
+            rp.RequestDate,
+            rp.AmountDeductedFromMember,
+            m.CardholderFirstName,
+            m.CardholderLastName,
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'CompanyName',
+            CASE WHEN m.cardholderlastname IS NOT NULL THEN CONCAT('Member - ', c.NHMemberID) ELSE 'Member - ' END AS 'VendorName',
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'PrintOnCheck',
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'Address1',
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS 'Address2',
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS 'Address3',
+            '' AS 'type'
+            INTO #reimbursement_address_1
+            FROM #reimbursement_payments rp 
+            LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid
+            LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber=c.CardReferenceNumber
+            LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
+            LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
+            LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID=mi.InsuranceCarrierID
+            LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
+            INNER JOIN master.Addresses a ON a.MemberID=mm.MemberID
+            WHERE
+            ih.IsActive=1
+            AND ic.IsActive=1
+            AND c.IsActive=1
+            AND ic.InsuranceCarrierID NOT IN (302, 270) 
+            AND ih.HealthPlanNumber IS NOT NULL
+            ORDER BY VendorName";
         public static readonly string SelectIntoReimbursementAddress2 = @"
 SELECT DISTINCT
 c.NHMemberID, 
@@ -109,11 +146,8 @@ AND ic.IsActive=1
 AND c.IsActive=1
 AND ih.HealthPlanNumber IS NOT NULL
 AND ic.InsuranceCarrierID NOT IN (302, 270) 
-AND a.AddressTypeCode='MAIL'
+AND a.AddressTypeCode= 'MAIL'
 ORDER BY VendorName";
-
-        public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #reimbursement_address_3";
-
         public static readonly string SelectIntoReimbursementAddress3 = @"
 SELECT DISTINCT
 c.NHMemberID, 
@@ -149,11 +183,8 @@ AND ic.IsActive=1
 AND c.IsActive=1
 AND ih.HealthPlanNumber IS NOT NULL
 AND c.IsActive=1
-AND a.AddressTypeCode='PERM'
+AND a.AddressTypeCode= 'PERM'
 ORDER BY NHMemberID";
-
-        public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #temp_final";
-
         public static readonly string SelectIntoTempFinal = @"
 SELECT ra1.NHMemberID,
 ra1.InsuranceCarrierName,
@@ -164,50 +195,50 @@ ra1.TxnGroupReferenceID,
 ra1.PurseSlot,
 ra1.RequestDate,
 ra1.AmountDeductedFromMember,
-CASE WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName= '') AND (ra2.FirstName IS NULL OR ra2.FirstName ='')
+CASE WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName = '') AND (ra2.FirstName IS NULL OR ra2.FirstName = '')
 		THEN ra3.CardholderFirstName
-	 WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName= '')
+	 WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName = '')
 		THEN ra2.FirstName ELSE ra1.CardholderFirstName
 END AS CardholderFirstName,
-CASE WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName ='') AND (ra2.LastName IS NULL OR ra2.LastName='')
+CASE WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName = '') AND (ra2.LastName IS NULL OR ra2.LastName = '')
 		THEN ra3.CardholderLastName
-	 WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName='')
+	 WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName = '')
 		THEN ra2.LastName
 		ELSE ra1.CardholderLastName
 END AS CardholderLastName,
-CASE WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName='') AND (ra2.CompanyName IS NULL OR ra2.CompanyName='')
+CASE WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName= '') AND (ra2.CompanyName IS NULL OR ra2.CompanyName= '')
 		THEN ra3.CompanyName
-	 WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName='')
+	 WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName= '')
 		THEN ra2.CompanyName
 		ELSE ra1.CompanyName
 END AS CompanyName,
-CASE WHEN (ra1.VendorName='Member - ' OR ra1.VendorName IS NULL) AND (ra2.VendorName='Member - ' OR ra2.VendorName IS NULL)
+CASE WHEN (ra1.VendorName= 'Member - ' OR ra1.VendorName IS NULL) AND (ra2.VendorName = 'Member - ' OR ra2.VendorName IS NULL)
 		THEN ra3.VendorName
-	 WHEN (ra1.VendorName='Member - ' OR ra1.VendorName IS NULL)
+	 WHEN (ra1.VendorName= 'Member - ' OR ra1.VendorName IS NULL)
 		THEN ra2.VendorName
 		ELSE ra1.VendorName
 END AS VendorName,
-CASE WHEN (ra1.PrintOnCheck='' OR ra1.PrintOnCheck IS NULL) AND (ra2.PrintOnCheck='' OR ra2.PrintOnCheck IS NULL)
+CASE WHEN (ra1.PrintOnCheck= '' OR ra1.PrintOnCheck IS NULL) AND (ra2.PrintOnCheck = '' OR ra2.PrintOnCheck IS NULL)
 		THEN ra3.PrintOnCheck
-	 WHEN (ra1.PrintOnCheck='' OR ra1.PrintOnCheck IS NULL)
+	 WHEN (ra1.PrintOnCheck= '' OR ra1.PrintOnCheck IS NULL)
 		THEN ra2.PrintOnCheck
 		ELSE ra1.PrintOnCheck
 END AS PrintOnCheck,
-CASE WHEN ra1.type = '' AND ra1.Address1 <>''
+CASE WHEN ra1.type = '' AND ra1.Address1 != ''
 		THEN ra1.Address1
-	 WHEN ra2.AddressTypeCode='Mail'
+	 WHEN ra2.AddressTypeCode= 'Mail'
 		THEN ra2.Address1
 		ELSE ra3.Address1
 END AS Address1,
-CASE WHEN ra1.type = '' AND ra1.Address2 <>''
+CASE WHEN ra1.type = '' AND ra1.Address2 != ''
 		THEN ra1.Address2
-	 WHEN ra2.AddressTypeCode='Mail'
+	 WHEN ra2.AddressTypeCode= 'Mail'
 		THEN ra2.Address2
 		ELSE ra3.Address2
 END AS Address2,
-CASE WHEN ra1.type = '' AND ra1.Address3 <>''
+CASE WHEN ra1.type = '' AND ra1.Address2 != ''
 		THEN ra1.Address3
-	 WHEN ra2.AddressTypeCode='Mail'
+	 WHEN ra2.AddressTypeCode= 'Mail'
 		THEN ra2.Address3
 		ELSE ra3.Address3
 END AS Address3,
@@ -217,11 +248,8 @@ CASE WHEN ra1.type = ''
 END AS AddressTypeCode
 INTO #temp_final
 FROM #reimbursement_address_1 ra1
-LEFT JOIN #reimbursement_address_2 ra2 ON ra1.txnreferenceid=ra2.txnreferenceid
-LEFT JOIN #reimbursement_address_3 ra3 ON ra1.txnreferenceid=ra3.txnreferenceid";
-
-        public static readonly string DropTableReimbursementFinal = @"DROP TABLE IF EXISTS #reimbursement_final";
-
+LEFT JOIN #reimbursement_address_2 ra2 ON ra1.txnreferenceid = ra2.txnreferenceid
+LEFT JOIN #reimbursement_address_3 ra3 ON ra1.txnreferenceid = ra3.txnreferenceid";
         public static readonly string SelectIntoReimbursementFinal = @" 
 SELECT 
     t.NHMemberID, 
@@ -262,9 +290,7 @@ GROUP BY
     t.Address3 
 ORDER BY 
     NHMemberID";
-
         public static readonly string SelectRawData = @"SELECT * FROM #reimbursement_final";
-
         public static readonly string SelectMemberMailingInfo = @" 
 SELECT
 CardholderFirstName,
@@ -288,7 +314,6 @@ Address1,
 Address2,
 Address3
 ORDER BY CardholderFirstName";
-
         public static readonly string SelectMemberCheckReimbursement = @"
 SELECT
 TxnID AS CaseNumber,
