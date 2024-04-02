@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-
-namespace CardServicesProcessor.Shared
+﻿namespace CardServicesProcessor.Shared
 {
     public static class SqlConstantsCheckIssuance
     {
@@ -27,17 +25,16 @@ namespace CardServicesProcessor.Shared
             bm.TxnGroupReferenceID,
             bm.TxnReferenceID,
             JSON_VALUE(bm.ClientResData, '$.PurseSlot') AS PurseSlot,
-            JSON_VALUE(bm.ClientResData, '$.TxnAmount') AS 'AmountDeductedFromMember',
-            CONVERT(VARCHAR, bm.TxnResponseDate, 110) AS 'RequestDate'
+            JSON_VALUE(bm.ClientResData, '$.TxnAmount') AS AmountDeductedFromMember,
+            CONVERT(VARCHAR, bm.TxnResponseDate, 110) AS RequestDate
             INTO #reimbursement_payments
             FROM ServiceRequest.MemberCaseTickets mct
-            INNER JOIN ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
-            INNER JOIN PaymentGateway.BenefitManagement bm WITH(NOLOCK) ON bm.NHMemberID=mc.NHMemberID AND bm.TxnGroupReferenceID=mc.CaseNumber
-            WHERE 1=1
-            AND CaseTopicID=24
+            JOIN ServiceRequest.MemberCases mc ON mct.CaseID = mc.CaseID
+            JOIN PaymentGateway.BenefitManagement bm WITH(NOLOCK) ON bm.NHMemberID = mc.NHMemberID AND bm.TxnGroupReferenceID = mc.CaseNumber
+            WHERE CaseTopicID = 24
             AND CaseTicketStatusID IN (3,9)
             AND ApprovedStatus = 'Approved'
-            AND cast(bm.TxnResponseDate as date) >= DATEADD(day, -7, 101)
+            AND cast(bm.TxnResponseDate as date) > DATEADD(day, -7, CONVERT(date, GETDATE()))
             ORDER BY mc.NHMemberID";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @$"
             SELECT DISTINCT
@@ -52,26 +49,25 @@ namespace CardServicesProcessor.Shared
             rp.AmountDeductedFromMember,
             m.CardholderFirstName,
             m.CardholderLastName,
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'CompanyName',
-            CASE WHEN m.cardholderlastname IS NOT NULL THEN CONCAT('Member - ', c.NHMemberID) ELSE 'Member - ' END AS 'VendorName',
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'PrintOnCheck',
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'Address1',
-            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS 'Address2',
-            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS 'Address3',
-            '' AS 'type'
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS CompanyName,
+            CASE WHEN m.cardholderlastname IS NOT NULL THEN CONCAT('Member - ', c.NHMemberID) ELSE 'Member - ' END AS VendorName,
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS PrintOnCheck,
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS Address1,
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS Address2,
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS Address3,
+            '' AS type
             INTO #reimbursement_address_1
             FROM #reimbursement_payments rp 
-            LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid and c.CardIssuer= 'BANCORP'
-            LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber=c.CardReferenceNumber
-            LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
-            LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
-            LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID=mi.InsuranceCarrierID
-            LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
-            INNER JOIN master.Addresses a ON a.MemberID=mm.MemberID
-            WHERE
-            ih.IsActive=1
-            AND ic.IsActive=1
-            AND c.IsActive=1
+            LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid and c.CardIssuer = 'BANCORP'
+            LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
+            LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
+            LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
+            LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
+            LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
+            INNER JOIN master.Addresses a ON a.MemberID = mm.MemberID
+            WHERE ih.IsActive = 1
+            AND ic.IsActive = 1
+            AND c.IsActive = 1
             AND ic.InsuranceCarrierID NOT IN (302, 270) 
             AND ih.HealthPlanNumber IS NOT NULL
             ORDER BY VendorName";
@@ -88,26 +84,26 @@ namespace CardServicesProcessor.Shared
             rp.AmountDeductedFromMember,
             m.CardholderFirstName,
             m.CardholderLastName,
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'CompanyName',
-            CASE WHEN m.cardholderlastname IS NOT NULL THEN CONCAT('Member - ', c.NHMemberID) ELSE 'Member - ' END AS 'VendorName',
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'PrintOnCheck',
-            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS 'Address1',
-            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS 'Address2',
-            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS 'Address3',
-            '' AS 'type'
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS CompanyName,
+            CASE WHEN m.cardholderlastname IS NOT NULL THEN CONCAT('Member - ', c.NHMemberID) ELSE 'Member - ' END AS VendorName,
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS PrintOnCheck,
+            CONCAT(m.CardholderFirstName, ' ', m.CardholderLastName) AS Address1,
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS Address2,
+            CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS Address3,
+            '' AS type
             INTO #reimbursement_address_1
             FROM #reimbursement_payments rp 
-            LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid
-            LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber=c.CardReferenceNumber
-            LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
-            LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
-            LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID=mi.InsuranceCarrierID
-            LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
-            INNER JOIN master.Addresses a ON a.MemberID=mm.MemberID
+            LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid
+            LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
+            LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
+            LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
+            LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
+            LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
+            JOIN master.Addresses a ON a.MemberID = mm.MemberID
             WHERE
-            ih.IsActive=1
-            AND ic.IsActive=1
-            AND c.IsActive=1
+            ih.IsActive = 1
+            AND ic.IsActive = 1
+            AND c.IsActive = 1
             AND ic.InsuranceCarrierID NOT IN (302, 270) 
             AND ih.HealthPlanNumber IS NOT NULL
             ORDER BY VendorName";
@@ -124,29 +120,28 @@ rp.RequestDate,
 rp.AmountDeductedFromMember,
 mm.FirstName,
 mm.LastName,
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'CompanyName',
-CONCAT('Member - ', mm.NHMemberID) AS 'VendorName',
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'PrintOnCheck',
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'Address1',
-a.Address1 AS 'Address2',
-CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS 'Address3',
+CONCAT(mm.FirstName, ' ', mm.LastName) AS CompanyName,
+CONCAT('Member - ', mm.NHMemberID) AS VendorName,
+CONCAT(mm.FirstName, ' ', mm.LastName) AS PrintOnCheck,
+CONCAT(mm.FirstName, ' ', mm.LastName) AS Address1,
+a.Address1 AS Address2,
+CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS Address3,
 a.AddressTypeCode
 INTO #reimbursement_address_2
-FROM 
-member.membercards c 
-LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
-LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
-LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID=mi.InsuranceCarrierID
-LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
-INNER JOIN master.Addresses a ON a.MemberID=mm.MemberID
-INNER JOIN #reimbursement_payments rp ON c.NHMemberID=rp.nhmemberid
+FROM member.membercards c 
+LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
+LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
+LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
+LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
+JOIN master.Addresses a ON a.MemberID = mm.MemberID
+JOIN #reimbursement_payments rp ON c.NHMemberID = rp.nhmemberid
 WHERE
-ih.IsActive=1
-AND ic.IsActive=1
-AND c.IsActive=1
+ih.IsActive = 1
+AND ic.IsActive = 1
+AND c.IsActive = 1
 AND ih.HealthPlanNumber IS NOT NULL
 AND ic.InsuranceCarrierID NOT IN (302, 270) 
-AND a.AddressTypeCode= 'MAIL'
+AND a.AddressTypeCode = 'MAIL'
 ORDER BY VendorName";
         public static readonly string SelectIntoReimbursementAddress3 = @"
 SELECT DISTINCT
@@ -161,29 +156,28 @@ rp.RequestDate,
 rp.AmountDeductedFromMember,
 mm.FirstName AS CardholderFirstName,
 mm.LastName AS CardholderLastName,
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'CompanyName',
-CONCAT('Member - ', mm.NHMemberID) AS 'VendorName',
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'PrintOnCheck',
-CONCAT(mm.FirstName, ' ', mm.LastName) AS 'Address1',
-a.Address1 AS 'Address2',
-CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS 'Address3',
-'' AS 'type'
+CONCAT(mm.FirstName, ' ', mm.LastName) AS CompanyName,
+CONCAT('Member - ', mm.NHMemberID) AS VendorName,
+CONCAT(mm.FirstName, ' ', mm.LastName) AS PrintOnCheck,
+CONCAT(mm.FirstName, ' ', mm.LastName) AS Address1,
+a.Address1 AS Address2,
+CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS Address3,
+'' AS type
 INTO #reimbursement_address_3
 FROM #reimbursement_payments rp 
-LEFT JOIN member.membercards c ON c.NHMemberID=rp.nhmemberid 
-Left join fisxtract.NonMonetary m ON m.PANProxyNumber=c.CardReferenceNumber
-LEFT JOIN master.Members mm ON c.NHMemberID=mm.NHMemberID
-LEFT JOIN master.MemberInsurances mi ON mi.MemberID=mm.MemberID
-LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID=mi.InsuranceCarrierID
-LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
-INNER JOIN master.Addresses a ON a.MemberID=mm.MemberID
-WHERE
-ih.IsActive=1
-AND ic.IsActive=1
-AND c.IsActive=1
+LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid 
+Left join fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
+LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
+LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
+LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
+LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
+JOIN master.Addresses a ON a.MemberID = mm.MemberID
+WHERE ih.IsActive = 1
+AND ic.IsActive = 1
+AND c.IsActive = 1
 AND ih.HealthPlanNumber IS NOT NULL
-AND c.IsActive=1
-AND a.AddressTypeCode= 'PERM'
+AND c.IsActive = 1
+AND a.AddressTypeCode = 'PERM'
 ORDER BY NHMemberID";
         public static readonly string SelectIntoTempFinal = @"
 SELECT ra1.NHMemberID,
@@ -206,39 +200,39 @@ CASE WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName = '') AND (r
 		THEN ra2.LastName
 		ELSE ra1.CardholderLastName
 END AS CardholderLastName,
-CASE WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName= '') AND (ra2.CompanyName IS NULL OR ra2.CompanyName= '')
+CASE WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName= '') AND (ra2.CompanyName IS NULL OR ra2.CompanyName = '')
 		THEN ra3.CompanyName
-	 WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName= '')
+	 WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName = '')
 		THEN ra2.CompanyName
 		ELSE ra1.CompanyName
 END AS CompanyName,
-CASE WHEN (ra1.VendorName= 'Member - ' OR ra1.VendorName IS NULL) AND (ra2.VendorName = 'Member - ' OR ra2.VendorName IS NULL)
+CASE WHEN (ra1.VendorName = 'Member - ' OR ra1.VendorName IS NULL) AND (ra2.VendorName = 'Member - ' OR ra2.VendorName IS NULL)
 		THEN ra3.VendorName
-	 WHEN (ra1.VendorName= 'Member - ' OR ra1.VendorName IS NULL)
+	 WHEN (ra1.VendorName = 'Member - ' OR ra1.VendorName IS NULL)
 		THEN ra2.VendorName
 		ELSE ra1.VendorName
 END AS VendorName,
-CASE WHEN (ra1.PrintOnCheck= '' OR ra1.PrintOnCheck IS NULL) AND (ra2.PrintOnCheck = '' OR ra2.PrintOnCheck IS NULL)
+CASE WHEN (ra1.PrintOnCheck = '' OR ra1.PrintOnCheck IS NULL) AND (ra2.PrintOnCheck = '' OR ra2.PrintOnCheck IS NULL)
 		THEN ra3.PrintOnCheck
-	 WHEN (ra1.PrintOnCheck= '' OR ra1.PrintOnCheck IS NULL)
+	 WHEN (ra1.PrintOnCheck = '' OR ra1.PrintOnCheck IS NULL)
 		THEN ra2.PrintOnCheck
 		ELSE ra1.PrintOnCheck
 END AS PrintOnCheck,
 CASE WHEN ra1.type = '' AND ra1.Address1 != ''
 		THEN ra1.Address1
-	 WHEN ra2.AddressTypeCode= 'Mail'
+	 WHEN ra2.AddressTypeCode = 'Mail'
 		THEN ra2.Address1
 		ELSE ra3.Address1
 END AS Address1,
 CASE WHEN ra1.type = '' AND ra1.Address2 != ''
 		THEN ra1.Address2
-	 WHEN ra2.AddressTypeCode= 'Mail'
+	 WHEN ra2.AddressTypeCode = 'Mail'
 		THEN ra2.Address2
 		ELSE ra3.Address2
 END AS Address2,
 CASE WHEN ra1.type = '' AND ra1.Address2 != ''
 		THEN ra1.Address3
-	 WHEN ra2.AddressTypeCode= 'Mail'
+	 WHEN ra2.AddressTypeCode = 'Mail'
 		THEN ra2.Address3
 		ELSE ra3.Address3
 END AS Address3,
@@ -269,8 +263,7 @@ SELECT
     t.Address2,
     t.Address3
 INTO #reimbursement_final
-FROM 
-    #temp_final t
+FROM #temp_final t
 GROUP BY 
     t.NHMemberID, 
     t.InsuranceCarrierName,
@@ -301,7 +294,6 @@ PrintOnCheck,
 Address1,
 Address2,
 Address3,
---'Due on Receipt' AS Terms,
 SUM(CAST(AmountDeductedFromMember AS DECIMAL(7,2))) AS TotalAmountDeductedFromMember
 FROM #reimbursement_final
 GROUP BY
@@ -327,6 +319,6 @@ nhmemberid,
 VendorName,
 RequestDate,
 TxnID
-ORDER BY RequestDate";
+ORDER BY VendorName";
     }
 }

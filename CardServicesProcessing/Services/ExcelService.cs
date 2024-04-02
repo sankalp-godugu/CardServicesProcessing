@@ -257,7 +257,10 @@ namespace CardServicesProcessor.Services
 
         public static void DeleteWorkbook(string filePath)
         {
-            if (File.Exists(filePath)) File.Delete(filePath);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
         }
 
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
@@ -306,7 +309,7 @@ namespace CardServicesProcessor.Services
             int startRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
 
             // Insert the data into the worksheet starting from the next empty row
-            var existingTable = worksheet.Tables.FirstOrDefault();
+            IXLTable? existingTable = worksheet.Tables.FirstOrDefault();
 
             if (existingTable == null)
             {
@@ -315,32 +318,7 @@ namespace CardServicesProcessor.Services
             }
             else
             {
-                worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
-                //AddDataToExistingTable(dt, worksheet, startRow);
-            }
-        }
-
-        private static void AddDataToExistingTable(DataTable dt, IXLWorksheet worksheet, int startRow)
-        {
-            // Iterate over the DataTable rows and insert them below the table
-            int rowOffset = 1; // Skip the header row
-            foreach (DataRow row in dt.Rows)
-            {
-                // Insert a row below the table
-                worksheet.Row(startRow + rowOffset).InsertRowsBelow(1);
-
-                // Populate the inserted row with data from the DataRow
-                for (int i = 0; i < dt.Columns.Count; i++)
-                {
-                    // Cast the value from the DataRow to the appropriate type expected by ClosedXML
-                    var cellValue = (dt.Columns[i].DataType == typeof(DateTime))
-                        ? Convert.ToDateTime(row[i]) // Example conversion for DateTime type, adjust as needed
-                        : row[i]; // For other types, assume no conversion needed
-
-                    worksheet.Cell(startRow + rowOffset, i + 1).SetValue(cellValue.ToString());
-                }
-
-                rowOffset++;
+                _ = worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
             }
         }
     }
