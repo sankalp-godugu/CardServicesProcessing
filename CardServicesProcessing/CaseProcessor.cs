@@ -43,11 +43,11 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, cache, reportSettings);
 
-                    log.LogInformation("Opening the Excel file...");
+                    log.LogInformation("Opening the Excel file at {FilePathCurr}...", CardServicesConstants.FilePathCurr);
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
-                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                    ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -67,23 +67,23 @@ namespace CardServicesProcessor
 
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation($"{settings.SheetName} > Querying for cases...");
+                log.LogInformation("{SheetName} > Querying for cases...", settings.SheetName);
                 sw.Start();
                 // Check if data exists in cache
                 if (!cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
                 {
                     // Data not found in cache, fetch from source and store in cache
-                    response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn);
+                    response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log);
                     _ = cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
-                log.LogInformation($"{settings.SheetName} > Processing missing/invalid data...");
+                log.LogInformation("{SheetName} > Processing missing/invalid data...", settings.SheetName);
                 sw.Restart();
                 DataTable tblCurr = DataProcessingService.ValidateCases(response);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
                 /*log.LogInformation("Reading data from last report sent to Elevance...");
                 sw.Restart();
@@ -97,23 +97,23 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");*/
 
-                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
+                log.LogInformation("{SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...", settings.SheetName);
                 sw.Restart();
                 DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
-                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
+                log.LogInformation("{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...", settings.SheetName);
                 sw.Restart();
                 //DataManipulationService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2024SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
-                log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
+                log.LogInformation("{SheetName} > Writing to Excel and applying filters...", settings.SheetName);
                 sw.Restart();
                 ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
             }
         }
 

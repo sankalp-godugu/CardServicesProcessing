@@ -34,7 +34,8 @@
             WHERE CaseTopicID = 24
             AND CaseTicketStatusID IN (3,9)
             AND ApprovedStatus = 'Approved'
-            AND cast(bm.TxnResponseDate as date) > DATEADD(day, -7, CONVERT(date, GETDATE()))
+            AND cast(bm.TxnResponseDate as date) >= DATEADD(day, -7, CONVERT(date, GETDATE()))
+            AND bm.TxnReferenceID NOT IN ('CbnoenL2UswL', '26R9MR8VSk8n')
             ORDER BY mc.NHMemberID";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @$"
             SELECT DISTINCT

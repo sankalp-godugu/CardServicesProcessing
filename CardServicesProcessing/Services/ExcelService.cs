@@ -9,7 +9,81 @@ namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static DataTable ReadReimbursementReport(string filePath)
+        public static DataTable ReadFromExcel(string filePath, string sheetName)
+        {
+            DataTable dataTable = new();
+
+            using (XLWorkbook workbook = new(filePath))
+            {
+                // Assuming the data is in the first worksheet of the workbook
+                IXLWorksheet worksheet = workbook.Worksheet(sheetName);
+
+                // Determine the range of cells containing data
+                var range = worksheet.RangeUsed();
+
+                // Add columns to the DataTable based on the headers in the first row
+                foreach (var cell in range.FirstRow().CellsUsed())
+                {
+                    dataTable.Columns.Add(cell.Value.ToString());
+                }
+
+                // Iterate over rows starting from the second row (assuming first row contains headers)
+                foreach (var row in range.RowsUsed().Skip(1))
+                {
+                    DataRow newRow = dataTable.Rows.Add();
+
+                    // Iterate over cells in the row and populate the DataRow
+                    for (int i = 0; i < row.CellCount(); i++)
+                    {
+                        newRow[i] = row.Cell(i + 1).Value.ToString();
+                    }
+                }
+            }
+
+            return dataTable;
+        }
+
+        public static DataTable ReadPrevCheckIssuanceReport(string filePath, string worksheetName)
+        {
+            DataTable dataTable = new();
+
+            // Load the Excel file
+            using (XLWorkbook workbook = CreateWorkbook(filePath))
+            {
+                // Get the worksheet by name
+                IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
+
+                // Assume the first row contains column headers
+                bool isFirstRow = true;
+
+                // Iterate over each row in the worksheet
+                foreach (IXLRow row in worksheet.RowsUsed())
+                {
+                    // If it's the first row, add column headers to the DataTable
+                    if (isFirstRow)
+                    {
+                        foreach (IXLCell cell in row.CellsUsed())
+                        {
+                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
+                        }
+                        isFirstRow = false;
+                    }
+                    else
+                    {
+                        // Add data rows to the DataTable
+                        DataRow newRow = dataTable.Rows.Add();
+                        int columnIndex = 0;
+                        foreach (IXLCell cell in row.CellsUsed())
+                        {
+                            newRow[columnIndex++] = cell.Value.ToString().Trim();
+                        }
+                    }
+                }
+            }
+            return dataTable;
+        }
+
+        public static DataTable ReadManualReimbursementReport(string filePath)
         {
             DataTable dataTable = new();
 
@@ -265,8 +339,6 @@ namespace CardServicesProcessor.Services
 
         public static void AddToExcel((IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) data, string filePath)
         {
-            XLWorkbook workbook = CreateWorkbook(filePath);
-
             DataTable rawData = data.Item1.ToDataTable();
             DataTable memberMailingInfo = data.Item2.ToDataTable();
             DataTable memberCheckReimbursements = data.Item3.ToDataTable();
@@ -297,6 +369,9 @@ namespace CardServicesProcessor.Services
 
         private static void AddDataToWorksheet(DataTable dt, XLWorkbook workbook, string sheetName)
         {
+            // get data table from previous report
+            DataTable dtPrev = ReadFromExcel(CheckIssuanceConstants.FilePathPrev, sheetName);
+
             // Get the worksheet by name
             bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
 
@@ -311,7 +386,9 @@ namespace CardServicesProcessor.Services
             // Insert the data into the worksheet starting from the next empty row
             IXLTable? existingTable = worksheet.Tables.FirstOrDefault();
 
-            if (existingTable == null)
+            InsertIntoExcelWithComparison(dt, worksheet, dtPrev);
+
+            /*if (existingTable == null)
             {
                 // If the table doesn't exist, then insert it
                 _ = worksheet.Cell(startRow, 1).InsertTable(dt);
@@ -319,6 +396,51 @@ namespace CardServicesProcessor.Services
             else
             {
                 _ = worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
+            }*/
+        }
+
+        public static void InsertIntoExcelWithComparison(DataTable sourceDataTable, IXLWorksheet worksheet, DataTable comparisonDataTable)
+        {
+            // Assuming the first row contains headers
+            bool isFirstRow = true;
+
+            // Iterate over each row in the source DataTable
+            foreach (DataRow sourceRow in sourceDataTable.Rows)
+            {
+                // Perform your comparison with the values in the comparison DataTable
+                bool shouldInsert = true;
+                foreach (DataRow comparisonRow in comparisonDataTable.Rows)
+                {
+                    // Compare values from source and comparison rows
+                    // Example: If sourceRow["ColumnName"] matches comparisonRow["ColumnName"], then set shouldInsert to false
+                    // Adjust the comparison logic based on your specific requirements
+                    if (sourceRow[ColumnNames.TxnReferenceId].Equals(comparisonRow[ColumnNames.TxnReferenceId]))
+                    {
+                        shouldInsert = false;
+                        break; // No need to continue looping through comparison rows if a match is found
+                    }
+                }
+
+                // If the row meets the criteria for insertion, add it to the worksheet
+                if (shouldInsert)
+                {
+                    if (isFirstRow)
+                    {
+                        // Add headers if it's the first row
+                        for (int i = 0; i < sourceDataTable.Columns.Count; i++)
+                        {
+                            worksheet.Cell(1, i + 1).Value = sourceDataTable.Columns[i].ColumnName;
+                        }
+                        isFirstRow = false;
+                    }
+
+                    // Insert data row into the worksheet
+                    int nextRow = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
+                    for (int i = 0; i < sourceDataTable.Columns.Count; i++)
+                    {
+                        worksheet.Cell(nextRow, i + 1).Value = sourceRow[i].ToString();
+                    }
+                }
             }
         }
     }

@@ -2,6 +2,7 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.ComponentModel;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -301,7 +302,7 @@ namespace CardServicesProcessor.Services
         public static void FillMissingInfoFromManualReimbursementReport(string filePath, DataTable dataTable)
         {
             // Load data from the second Excel file
-            DataTable tblManualReimbursements = ExcelService.ReadReimbursementReport(filePath);
+            DataTable tblManualReimbursements = ExcelService.ReadManualReimbursementReport(filePath);
 
             foreach (DataRow row in dataTable.Rows)
             {

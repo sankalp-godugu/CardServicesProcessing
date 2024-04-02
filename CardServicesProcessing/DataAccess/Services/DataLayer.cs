@@ -5,6 +5,7 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Diagnostics;
 using System.Reflection;
 using static Dapper.SqlMapper;
 
@@ -15,6 +16,7 @@ namespace CardServicesProcessor.DataAccess.Services
     /// </summary>
     public class DataLayer : IDataLayer
     {
+
         /// <summary>
         /// Executes a query and returns the collection of objects from the SQL database.
         /// </summary>
@@ -23,9 +25,9 @@ namespace CardServicesProcessor.DataAccess.Services
         /// <param name="parameters">The dictionary of SQL parameters to pass to the stored procedure.</param>
         /// <param name="connectionString">Connection string</param>
         /// <returns>The collection of objects returned from the executed query.</returns>
-        public async Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger logger)
+        public async Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger log)
         {
-            logger.LogInformation($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
+            log.LogInformation($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
             List<T> list = [];
             using (SqlConnection sqlConnection = new(connectionString))
             {
@@ -33,7 +35,7 @@ namespace CardServicesProcessor.DataAccess.Services
                 try
                 {
                     using SqlCommand sqlCommand = new();
-                    sqlCommand.CommandTimeout = GetSqlCommandTimeout(logger);
+                    sqlCommand.CommandTimeout = GetSqlCommandTimeout(log);
                     sqlCommand.Connection = sqlConnection;
                     sqlCommand.CommandType = CommandType.StoredProcedure;
                     sqlCommand.CommandText = procedureName;
@@ -44,22 +46,22 @@ namespace CardServicesProcessor.DataAccess.Services
                     }
                     SqlDataReader dataReader = await sqlCommand.ExecuteReaderAsync();
 
-                    list = DataReaderMapToList<T>(dataReader, logger);
+                    list = DataReaderMapToList<T>(dataReader, log);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"{procedureName} failed with exception: {ex.Message}");
+                    log.LogError($"{procedureName} failed with exception: {ex.Message}");
                 }
                 finally
                 {
                     sqlConnection.Close();
                 }
             }
-            logger.LogInformation($"Ended calling stored procedure {procedureName}");
+            log.LogInformation($"Ended calling stored procedure {procedureName}");
             return list;
         }
 
-        public async Task<IEnumerable<T>> QueryAsyncCustom<T>(string connectionString, object? parameters = null)
+        public async Task<IEnumerable<T>> QueryAsyncCustom<T>(string connectionString, ILogger log, object? parameters = null)
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
@@ -67,73 +69,87 @@ namespace CardServicesProcessor.DataAccess.Services
 
             try
             {
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropAllCSCases, transaction: transaction);
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoAllCSCases, transaction: transaction);
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropTblMemberInsuranceMax, transaction: transaction);
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoMemberInsuranceMax, transaction: transaction);
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.DropTblReimbursementAmount, transaction: transaction);
-                _ = await connection.ExecuteAsync(SQLConstantsCardServices.SelectIntoTblReimbursementAmount, transaction: transaction);
-                IEnumerable<T> result = await connection.QueryAsync<T>(SQLConstantsCardServices.SelectCases, transaction: transaction, commandTimeout: 0);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropAllCSCases, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoAllCSCases, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblMemberInsuranceMax, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoMemberInsuranceMax, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblReimbursementAmount, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoTblReimbursementAmount, "ElapsedTime", transaction, log);
+                IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, SQLConstantsCardServices.SelectCases, "ElapsedTime", transaction, log);
                 return result;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                await transaction.DisposeAsync();
-                // Handle exceptions (e.g., logging, error handling)
-                Console.WriteLine($"Error executing SQL query: {ex.Message}");
+                // Handle SQL-related exceptions
+                log.LogError(ex, $"SqlException occurred:\n" +
+                $"Message: {ex.Message}\n" +
+                $"Procedure: {ex.Procedure}\n" +
+                $"Line Number: {ex.LineNumber}\n" +
+                $"Server: {ex.Server}\n" +
+                $"Class: {ex.Class}\n" +
+                $"Number: {ex.Number}\n" +
+                $"State: {ex.State}\n" +
+                $"Source: {ex.Source}\n" +
+                $"StackTrace: {ex.StackTrace}");
                 throw;
-            }
-        }
-
-        public async Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultipleAsyncCustom(string connectionString)
-        {
-            /*DynamicParameters parameters = new();
-            parameters.Add("@ApprovedStatus", "Approved");
-            DateTime fromDateTime = DateTime.UtcNow.AddDays(-7);
-            parameters.Add("@FromDate", fromDateTime, DbType.DateTime);
-            string debugQuery = SqlConstantsCheckIssuance.Query;
-            foreach (var parameter in parameters.ParameterNames)
-            {
-                var value = parameters.Get<object>(parameter);
-                debugQuery = debugQuery.Replace($"@{parameter}", value.ToString());
-            }
-            */
-
-            using SqlConnection connection = new(connectionString);
-            await connection.OpenAsync();
-            using SqlTransaction transaction = connection.BeginTransaction();
-
-            try
-            {
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementPayments, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress1, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropTempFinal, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.DropReimbursementFinal, transaction: transaction);
-
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction: transaction);
-
-                _ = connection.Database == Databases.Elevance
-                    ? await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV, transaction: transaction)
-                    : await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT, transaction: transaction);
-
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoTempFinal, transaction: transaction);
-                _ = await connection.ExecuteAsync(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, transaction: transaction);
-
-                IEnumerable<RawData> rawData = await connection.QueryAsync<RawData>(SqlConstantsCheckIssuance.SelectRawData, transaction: transaction);
-                IEnumerable<MemberMailingInfo> memberMailingInfo = await connection.QueryAsync<MemberMailingInfo>(SqlConstantsCheckIssuance.SelectMemberMailingInfo, transaction: transaction);
-                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await connection.QueryAsync<MemberCheckReimbursement>(SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, transaction: transaction);
-
-                return (rawData, memberMailingInfo, memberCheckReimbursements);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                // Handle exceptions (e.g., logging, error handling)
-                Console.WriteLine($"Error executing SQL query: {ex.Message}");
+                Console.WriteLine($"Exception occurred: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<(IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>)> QueryMultipleAsyncCustom(string connectionString, ILogger log)
+        {
+            using SqlConnection connection = new(connectionString);
+            await connection.OpenAsync();
+            using SqlTransaction transaction = connection.BeginTransaction();
+
+            try
+            {
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementPayments, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress1, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress2, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress3, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropTempFinal, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementFinal, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection,
+                    connection.Database == Databases.Nations ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV,
+                    "ElapsedTime",
+                    transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoTempFinal, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, "ElapsedTime", transaction, log);
+
+                var rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, "ElapsedTime", transaction, log);
+                var memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectMemberMailingInfo, "ElapsedTime", transaction, log);
+                var memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, "ElapsedTime", transaction, log);
+
+                return (rawData, memberMailingInfo, memberCheckReimbursements);
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL-related exceptions
+                log.LogError(ex, $"SqlException occurred:\n" +
+                $"Message: {ex.Message}\n" +
+                $"Procedure: {ex.Procedure}\n" +
+                $"Line Number: {ex.LineNumber}\n" +
+                $"Server: {ex.Server}\n" +
+                $"Class: {ex.Class}\n" +
+                $"Number: {ex.Number}\n" +
+                $"State: {ex.State}\n" +
+                $"Source: {ex.Source}\n" +
+                $"StackTrace: {ex.StackTrace}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Exception occurred: {ex.Message}");
                 throw;
             }
         }
@@ -144,7 +160,7 @@ namespace CardServicesProcessor.DataAccess.Services
         /// Gets the sql command timeout.
         /// </summary>
         /// <returns>Returns the sql command timeout.</returns>
-        private static int GetSqlCommandTimeout(ILogger logger)
+        private static int GetSqlCommandTimeout(ILogger log)
         {
             try
             {
@@ -153,7 +169,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (Exception ex)
             {
-                logger.LogError($"TimeOut with Exception: {ex.Message}");
+                log.LogError($"TimeOut with Exception: {ex.Message}");
                 return -1;
             }
         }
@@ -164,7 +180,7 @@ namespace CardServicesProcessor.DataAccess.Services
         /// <typeparam name="T">The type of the object to return.</typeparam>
         /// <param name="dataReader">The DataReader.</param>
         /// <returns>Returns the parsed object from the data reader.</returns>
-        private static List<T> DataReaderMapToList<T>(SqlDataReader dataReader, ILogger logger)
+        private static List<T> DataReaderMapToList<T>(SqlDataReader dataReader, ILogger log)
         {
             List<T> list = [];
             try
@@ -189,7 +205,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (Exception ex)
             {
-                logger.LogError($"Error occured while parsing the List to table with Exception: {ex.Message}");
+                log.LogError($"Error occured while parsing the List to table with Exception: {ex.Message}");
                 return list;
             }
         }
@@ -202,6 +218,21 @@ namespace CardServicesProcessor.DataAccess.Services
         private static List<SqlParameter> GetSqlParameters(Dictionary<string, object> parameters)
         {
             return parameters.Select(sp => new SqlParameter(sp.Key, sp.Value)).ToList();
+        }
+
+        public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
+        {
+            var sw = Stopwatch.StartNew();
+            await connection.ExecuteAsync(sqlCommand, transaction: transaction);
+            ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
+        }
+
+        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
+        {
+            var sw = Stopwatch.StartNew();
+            var result = await connection.QueryAsync<T>(sqlCommand, transaction: transaction);
+            ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
+            return result;
         }
 
         #endregion

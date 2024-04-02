@@ -29,15 +29,7 @@
         public const string ClosingComments = "Closing Comments";
 
         // Check issuance report
-        /*public class CheckIssuance
-        {
-            public class RawData
-            {
-                public const string NhMemberId = "NH Member ID";
-                public const string Carrier = "Carrier";
-                public const string MemberProxy = "Member Proxy";
-            }
-        }*/
+        public const string TxnReferenceId = "TxnReferenceId";
 
         // From Manual Adjustments 2023 report
         public const string BenefitWallet = "Benefit Wallet";

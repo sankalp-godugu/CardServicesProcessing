@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Diagnostics;
 
 namespace CardServicesProcessor
@@ -32,11 +33,11 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, cache, reportInfo);
 
-                    log.LogInformation("Opening the Excel file...");
+                    log.LogInformation("Opening the Excel file at {FilePathCurr}...", CheckIssuanceConstants.FilePathCurr);
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CheckIssuanceConstants.FilePathCurr);
                     sw.Stop();
-                    log.LogInformation("Elapsed time in seconds", sw.Elapsed.TotalSeconds);
+                    ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -56,29 +57,23 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogInformation($"Processing data for: {settings.SheetName}...");
+                log.LogInformation("Processing data for: {SheetName}", settings.SheetName);
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation($"Getting all approved reimbursements for: {settings.SheetName}...");
+                log.LogInformation("Getting all approved reimbursements for: {SheetName}", settings.SheetName);
                 sw.Start();
                 if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out (IEnumerable<RawData>, IEnumerable<MemberMailingInfo>, IEnumerable<MemberCheckReimbursement>) response))
                 {
-                    response = await dataLayer.QueryMultipleAsyncCustom(conn);
+                    response = await dataLayer.QueryMultipleAsyncCustom(conn, log);
                     _ = cache.Set($"{settings.SheetName}CheckIssuance", response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
-                log.LogInformation("Adding to Excel...");
+                log.LogInformation("Adding data to Excel for: {SheetName}", settings.SheetName);
                 sw.Start();
                 ExcelService.AddToExcel(response, CheckIssuanceConstants.FilePathCurr);
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
-
-                log.LogInformation("Processing missing/invalid data...");
-                sw.Restart();
-                //_ = DataProcessingService.ValidateCases(response);
-                sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
             }
         }
 

@@ -2,7 +2,7 @@
 {
     public static class CardServicesConstants
     {
-        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-d}\CardServicesReport_{DateTime.Today:MMddyyyy}.xlsx";
+        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-dd}\CardServicesReport_{DateTime.Today:MMddyyyy}.xlsx";
 
         public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\Elevance Reimbursement Data YTD - 03142024.xlsx";
 
