@@ -29,7 +29,9 @@
         public const string ClosingComments = "Closing Comments";
 
         // Check issuance report
-        public const string TxnReferenceId = "Txn Reference Id";
+        public const string TxnReferenceId = "Txn Reference ID";
+        public const string VendorName = "Vendor Name/Member NHID-Formula";
+        public const string CaseNumber = "Case Number";
 
         // From Manual Adjustments 2023 report
         public const string BenefitWallet = "Benefit Wallet";

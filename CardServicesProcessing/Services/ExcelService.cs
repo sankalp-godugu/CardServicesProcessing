@@ -305,7 +305,7 @@ namespace CardServicesProcessor.Services
             return File.Exists(filePath) ? new XLWorkbook(filePath) : new XLWorkbook();
         }
 
-        public static void OpenExcel(string filePath)
+        public static async Task OpenExcel(string filePath)
         {
             // Path to Excel executable
             string excelPath = File.Exists(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE") ?
@@ -325,7 +325,8 @@ namespace CardServicesProcessor.Services
                 Arguments = $"\"{filePath}\"",
                 UseShellExecute = false
             };
-            _ = Process.Start(startInfo);
+
+            await Process.Start(startInfo).WaitForExitAsync();
         }
 
         public static void DeleteWorkbook(string filePath)
@@ -436,6 +437,14 @@ namespace CardServicesProcessor.Services
 
         public static void InsertIntoExcelWithComparison(DataTable sourceDataTable, IXLWorksheet worksheet, DataTable comparisonDataTable)
         {
+            var columnName = worksheet.Name switch
+            {
+                CheckIssuanceConstants.RawData => ColumnNames.TxnReferenceId,
+                CheckIssuanceConstants.MemberMailingInfo => ColumnNames.VendorName,
+                CheckIssuanceConstants.MemberCheckReimbursement => ColumnNames.CaseNumber,
+                _ => throw new NotImplementedException(),
+            };
+
             // Assuming the first row contains headers
             bool isFirstRow = true;
 
@@ -449,7 +458,7 @@ namespace CardServicesProcessor.Services
                     // Compare values from source and comparison rows
                     // Example: If sourceRow["ColumnName"] matches comparisonRow["ColumnName"], then set shouldInsert to false
                     // Adjust the comparison logic based on your specific requirements
-                    if (sourceRow[ColumnNames.TxnReferenceId].Equals(comparisonRow["TxnReferenceID"]))
+                    if (sourceRow[columnName].Equals(comparisonRow[columnName]))
                     {
                         shouldInsert = false;
                         break; // No need to continue looping through comparison rows if a match is found

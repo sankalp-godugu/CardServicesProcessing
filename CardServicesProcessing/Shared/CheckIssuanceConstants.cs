@@ -9,6 +9,10 @@ namespace CardServicesProcessor.Shared
 
         public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today.AddDays(-7):M-dd}\ReimbursementCheckIssuance_{DateTime.Today.AddDays(-7):MMddyyyy}.xlsx";
 
+        public const string RawData = "Raw Data";
+        public const string MemberMailingInfo = "Member Mailing Info";
+        public const string MemberCheckReimbursement = "Member Check Reimbursement";
+
         public static readonly Dictionary<int, string> SheetIndexToNameMap = new() {
             { 1, "Raw Data" },
             { 2, "Member Mailing Info" },
