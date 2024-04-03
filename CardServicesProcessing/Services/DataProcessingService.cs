@@ -244,7 +244,7 @@ namespace CardServicesProcessor.Services
                         dataRow[ColumnNames.ProcessedDate] = processedDate;
 
                         // consolidate wallets
-                        wallet = wallet.IsTruthy() ? wallet.GetWalletFromCommentsOrWalletCol(closingComments, Wallet.GetCategoryVariations()) : wallet;
+                        wallet = wallet.IsTruthy() ? wallet.GetWalletFromCommentsOrWalletCol(closingComments) : wallet;
 
                         if (caseTopic == "Card Replacement")
                         {
@@ -320,31 +320,34 @@ namespace CardServicesProcessor.Services
 
                 if (matchingRows.Length > 0)
                 {
-                    string? benefitWallet = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
+                    string? benefitWalletFromManualReport = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
+                    string? benefitWalletFromCMT = row[ColumnNames.Wallet].ToString()?.Trim();
 
-                    if (benefitWallet is null)
+                    if (!benefitWalletFromManualReport.IsTruthy() || benefitWalletFromCMT.IsTruthy())
                     {
                         continue;
                     }
 
                     // Handle empty "Case Closed Date" cell
-                    if (benefitWallet.ContainsNumbers())
+                    if (benefitWalletFromManualReport.ContainsNumbers())
                     {
-                        benefitWallet = matchingRows[0][ColumnNames.CaseClosedDate].ToString()?.Trim();
+                        benefitWalletFromManualReport = matchingRows[0][ColumnNames.CaseClosedDate].ToString()?.Trim();
                     }
 
-                    benefitWallet = benefitWallet.StripNumbers();
+                    benefitWalletFromManualReport = benefitWalletFromManualReport.StripNumbers();
 
                     // Map the benefit description using dictionaries
-                    if (Wallet.zPurseToBenefitDesc.TryGetValue(benefitWallet, out string? value)
-                        || Wallet.benefitTypeToBenefitDesc.TryGetValue(benefitWallet, out value))
+                    if (Wallet.zPurseToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out string? value)
+                        || Wallet.benefitTypeToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out value))
                     {
-                        row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(value, out string? walletName) ? walletName : value;
+                        //row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(value, out string? walletName) ? walletName : value;
+                        row[ColumnNames.Wallet] = value.GetWalletFromCommentsOrWalletCol(null);
                     }
                     else
                     {
                         // Handle case where benefit wallet doesn't have a corresponding benefit description
-                        row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(benefitWallet, out string? walletName) ? walletName : benefitWallet;
+                        //row[ColumnNames.Wallet] = Wallet.BenefitDescToWalletName.TryGetValue(benefitWalletFromManualReport, out string? walletName) ? walletName : benefitWalletFromManualReport;
+                        row[ColumnNames.Wallet] = benefitWalletFromManualReport.GetWalletFromCommentsOrWalletCol(null);
                     }
                 }
                 else
@@ -440,7 +443,7 @@ namespace CardServicesProcessor.Services
                     // If a matching row is found, fill in the missing Wallet value
                     if (matchingRow != null)
                     {
-                        rowTblCurr[ColumnNames.Wallet] = matchingRow[ColumnNames.Wallet].ToString()?.GetWalletFromCommentsOrWalletCol(null, Wallet.GetCategoryVariations());
+                        rowTblCurr[ColumnNames.Wallet] = matchingRow[ColumnNames.Wallet].ToString()?.GetWalletFromCommentsOrWalletCol(null);
                     }
                     else
                     {
@@ -467,7 +470,7 @@ namespace CardServicesProcessor.Services
                         if (!hasProcessedDate)
                         {
                             rowTblCurr[ColumnNames.ProcessedDate] = matchingRow[ColumnNames.ProcessedDate].ToString();
-                            rowTblCurr[ColumnNames.ApprovedStatus] = Statuses.Approved;
+                            //rowTblCurr[ColumnNames.ApprovedStatus] = Statuses.Approved;
                         }
 
                         // Format the approved amount

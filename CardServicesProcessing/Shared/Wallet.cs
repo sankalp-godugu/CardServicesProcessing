@@ -1,4 +1,5 @@
 ﻿using CardServicesProcessor.Utilities.Constants;
+using System.Linq;
 
 namespace CardServicesProcessor.Shared
 {
@@ -16,19 +17,19 @@ namespace CardServicesProcessor.Shared
         public const string Transportation = "Transportation";
         public const string Utilities = "Utilities";
         public const string Unknown = "Unknown";
+        // wallets from z purse mapping
+        public const string Rewards = "Rewards";
 
         public static readonly string[] AssistiveDevicesVariations = ["assistive devices"];
         public static readonly string[] ActiveFitnessVariations = ["fitness", "AAF"];
         public static readonly string[] DvhVariations = ["dvh", "dhv", "vdh", "vhd", "hvd", "hdv", "dental", "vision", "hearing", "ZVD2300"];
         public static readonly string[] HgVariations = ["hg", "grocer", "heg", "healthy food", "FOD2312"];
-        public static readonly string[] OtcVariations = ["otc", "over the counter"];
+        public static readonly string[] OtcVariations = ["otc", "over the counter", "ESM"];
         public static readonly string[] PersVariations = [" pers "];
+        public static readonly string[] RewardsVariations = ["Wellness your way", "Open Spend - Unrestricted Rewards"];
         public static readonly string[] ServiceVariations = ["service dog", " dog "];
-        public static readonly string[] UtilityVariations = ["utility", "utilities", "utl"];
+        public static readonly string[] UtilityVariations = ["utility", "utilities", "utl", "parking"];
         public static readonly string[] OtherBenefitTypes = ["y", "yes", "n", "no", "denied", "ptc", "none"];
-
-        // wallets from z purse mapping
-        public const string Rewards = "Rewards";
 
         public static Dictionary<string, string[]> GetCategoryVariations()
         {
@@ -40,20 +41,20 @@ namespace CardServicesProcessor.Shared
                 { HealthyGroceries, HgVariations },
                 { OTC, OtcVariations },
                 { PERS, PersVariations },
+                { Rewards, RewardsVariations },
                 { ServiceDog, ServiceVariations },
                 { Utilities, UtilityVariations }
             };
         }
 
-        public static string GetWalletFromCommentsOrWalletCol(this string wallet, string? closingComments, Dictionary<string, string[]> walletNameToVariations)
+        public static string GetWalletFromCommentsOrWalletCol(this string wallet, string? closingComments)
         {
-            foreach (KeyValuePair<string, string[]> kvp in walletNameToVariations)
+            foreach (var kvp in from KeyValuePair<string, string[]> kvp in GetCategoryVariations()
+                                where (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
+                                || wallet.ContainsAny(kvp.Value)
+                                select kvp)
             {
-                if ((closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
-                    || wallet.ContainsAny(kvp.Value))
-                {
-                    return kvp.Key;
-                }
+                return kvp.Key;
             }
 
             // If no specific category found, return trimmed input
@@ -77,6 +78,10 @@ namespace CardServicesProcessor.Shared
             { "Dental", DVH },
             { "Hearing", DVH },
             { "DVH", DVH },
+            { "Flex-DVH", DVH },
+            { "Flex DVH", DVH },
+            { "Flex-Vision only", DVH },
+            { "Flex-Dental", DVH },
             { "DHV", DVH },
             { "VDH", DVH },
             { "VHD", DVH },

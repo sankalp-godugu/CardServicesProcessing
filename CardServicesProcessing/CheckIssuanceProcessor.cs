@@ -56,10 +56,10 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogInformation("Processing data for: {SheetName}", settings.SheetName);
+                log.LogInformation("{SheetName} > Processing data", settings.SheetName);
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("Getting all approved reimbursements for: {SheetName}", settings.SheetName);
+                log.LogInformation("{SheetName} > Getting all approved reimbursements", settings.SheetName);
                 sw.Start();
                 if (!cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
@@ -69,7 +69,7 @@ namespace CardServicesProcessor
                 sw.Stop();
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
 
-                log.LogInformation("Adding data to Excel for: {SheetName}", settings.SheetName);
+                log.LogInformation("{SheetName} > Adding data to Excel", settings.SheetName);
                 sw.Start();
                 ExcelService.AddToExcel<CheckIssuance>(dataCurr);
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);

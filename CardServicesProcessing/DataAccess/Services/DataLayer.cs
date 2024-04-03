@@ -4,13 +4,9 @@ using CardServicesProcessor.Shared;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace CardServicesProcessor.DataAccess.Services
 {
