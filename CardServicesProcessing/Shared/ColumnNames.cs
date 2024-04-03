@@ -29,7 +29,7 @@
         public const string ClosingComments = "Closing Comments";
 
         // Check issuance report
-        public const string TxnReferenceId = "TxnReferenceId";
+        public const string TxnReferenceId = "Txn Reference Id";
 
         // From Manual Adjustments 2023 report
         public const string BenefitWallet = "Benefit Wallet";

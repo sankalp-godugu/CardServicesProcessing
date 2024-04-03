@@ -68,11 +68,10 @@ namespace CardServicesProcessor
                 }
                 sw.Stop();
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
-                CheckIssuance dataPrev = ExcelService.ReadFromExcel<CheckIssuance>(CheckIssuanceConstants.FilePathPrev);
 
                 log.LogInformation("Adding data to Excel for: {SheetName}", settings.SheetName);
                 sw.Start();
-                ExcelService.AddToExcel(dataPrev);
+                ExcelService.AddToExcel<CheckIssuance>(dataCurr);
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
             }
         }

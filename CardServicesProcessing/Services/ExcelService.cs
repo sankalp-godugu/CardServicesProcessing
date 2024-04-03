@@ -10,40 +10,36 @@ namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static IEnumerable<T> ReadFromExcel<T>(string filePath, string sheetName)
+        public static DataTable ReadWorksheetToDataTable(string filePath, string sheetName)
         {
-            List<T> result = new List<T>();
+            DataTable dataTable = new DataTable();
 
             using (XLWorkbook workbook = new XLWorkbook(filePath))
             {
                 IXLWorksheet worksheet = workbook.Worksheet(sheetName);
 
-                // Get the properties of type T
-                PropertyInfo[] properties = typeof(T).GetProperties();
+                // Get the headers from the first row
+                var headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
 
-                // Assuming the data starts from the second row (after headers)
-                var rows = worksheet.RowsUsed().Skip(1)
-                    .Select(row =>
+                // Add columns to the DataTable
+                foreach (var header in headers)
+                {
+                    dataTable.Columns.Add(header);
+                }
+
+                // Add rows to the DataTable
+                var rows = worksheet.RowsUsed().Skip(1);
+                foreach (var row in rows)
+                {
+                    DataRow dataRow = dataTable.Rows.Add();
+                    for (int i = 0; i < headers.Count; i++)
                     {
-                        // Create an instance of T
-                        T obj = Activator.CreateInstance<T>();
-
-                        int columnIndex = 0;
-                        foreach (var prop in properties)
-                        {
-                            // Get the value from the cell and convert it to the property type
-                            object cellValue = Convert.ChangeType(row.Cell(++columnIndex).Value, prop.PropertyType);
-                            // Set the property value
-                            prop.SetValue(obj, cellValue);
-                        }
-
-                        return obj;
-                    });
-
-                result.AddRange(rows);
+                        dataRow[i] = row.Cell(i + 1).Value.ToString().Trim();
+                    }
+                }
             }
 
-            return result;
+            return dataTable;
         }
 
         public static DataTable ReadPrevCheckIssuanceReport(string filePath, string worksheetName)
@@ -409,14 +405,8 @@ namespace CardServicesProcessor.Services
 
         private static void AddDataToWorksheet<T>(T dt, XLWorkbook workbook, string sheetName) where T : DataTable
         {
-            DataTable dtPrev = sheetName switch
-            {
-                "Raw Data" => ReadFromExcel<RawData>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
-                "Member Mailing Info" => ReadFromExcel<MemberMailingInfo>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
-                "Member Check Reimbursement" => ReadFromExcel<MemberCheckReimbursement>(CheckIssuanceConstants.FilePathPrev, sheetName).ToDataTable(),
-                _ => throw new NotImplementedException()
-            };
-
+            DataTable dtPrev = ReadWorksheetToDataTable(CheckIssuanceConstants.FilePathPrev, sheetName);
+            
             // Get the worksheet by name
             bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
 
@@ -459,7 +449,7 @@ namespace CardServicesProcessor.Services
                     // Compare values from source and comparison rows
                     // Example: If sourceRow["ColumnName"] matches comparisonRow["ColumnName"], then set shouldInsert to false
                     // Adjust the comparison logic based on your specific requirements
-                    if (sourceRow[ColumnNames.TxnReferenceId].Equals(comparisonRow[ColumnNames.TxnReferenceId]))
+                    if (sourceRow[ColumnNames.TxnReferenceId].Equals(comparisonRow["TxnReferenceID"]))
                     {
                         shouldInsert = false;
                         break; // No need to continue looping through comparison rows if a match is found
