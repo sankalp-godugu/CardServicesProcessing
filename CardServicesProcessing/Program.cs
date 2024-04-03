@@ -12,18 +12,6 @@ IHost host = new HostBuilder()
         _ = services.AddApplicationInsightsTelemetryWorkerService();
         _ = services.ConfigureFunctionsApplicationInsights();
         _ = services.AddSingleton<IDataLayer, DataLayer>();
-        /*_ = services.AddSingleton<IDataLayer>((s) =>
-        {
-            var log = s.GetRequiredService<ILogger<DataLayer>>();
-            return new DataLayer(log);
-        });*/
     })
-    /*.ConfigureLogging(logging =>
-    {
-        logging.ClearProviders();
-        //logging.AddConsoleFormatter(options => options.IncludeScopes = true);
-        logging.SetMinimumLevel(LogLevel.Debug);
-    })*/
     .Build();
-
 host.Run();
