@@ -4,7 +4,6 @@ using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
 using System.Data;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace CardServicesProcessor.Services
 {
@@ -12,24 +11,24 @@ namespace CardServicesProcessor.Services
     {
         public static DataTable ReadWorksheetToDataTable(string filePath, string sheetName)
         {
-            DataTable dataTable = new DataTable();
+            DataTable dataTable = new();
 
-            using (XLWorkbook workbook = new XLWorkbook(filePath))
+            using (XLWorkbook workbook = new(filePath))
             {
                 IXLWorksheet worksheet = workbook.Worksheet(sheetName);
 
                 // Get the headers from the first row
-                var headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
+                List<string> headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
 
                 // Add columns to the DataTable
-                foreach (var header in headers)
+                foreach (string? header in headers)
                 {
-                    dataTable.Columns.Add(header);
+                    _ = dataTable.Columns.Add(header);
                 }
 
                 // Add rows to the DataTable
-                var rows = worksheet.RowsUsed().Skip(1);
-                foreach (var row in rows)
+                IEnumerable<IXLRow> rows = worksheet.RowsUsed().Skip(1);
+                foreach (IXLRow? row in rows)
                 {
                     DataRow dataRow = dataTable.Rows.Add();
                     for (int i = 0; i < headers.Count; i++)
@@ -229,14 +228,14 @@ namespace CardServicesProcessor.Services
             XLWorkbook workbook = CreateWorkbook(filePath);
 
             // Check if the worksheet exists
-            if (workbook.TryGetWorksheet(sheetName, out IXLWorksheet worksheet))
+            if (workbook.TryGetWorksheet(sheetName, out _))
             {
                 // If it exists, delete it
                 workbook.Worksheets.Delete(sheetName);
             }
 
             // Add a new worksheet with the same name
-            worksheet = workbook.Worksheets.Add(sheetName, sheetPos).SetTabColor(XLColor.Yellow);
+            IXLWorksheet worksheet = workbook.Worksheets.Add(sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
             // Remove empty columns (if any)
             int totalColumns = dataTable.Columns.Count;
@@ -271,16 +270,6 @@ namespace CardServicesProcessor.Services
                 // Set static width for column 5 and 10
                 worksheet.Column(colIndex).Width = staticWidth;
             }
-
-            //SetFilterOnDateColumns();
-
-            // Specify the columns that contain date values by column letter (e.g., "A", "B", "C", etc.)
-            int[] dateColumns = [
-                ColumnNames.CreateDateColNumber,
-                ColumnNames.TransactionDateColNumber,
-                ColumnNames.DOBColNumber,
-                ColumnNames.ProcessedDateColNumber
-            ]; // Example: Columns A, C, and E
 
             // Apply filters to all columns
             _ = worksheet.SetAutoFilter(true).Column(14).AddFilter("Reimbursement");
@@ -326,7 +315,7 @@ namespace CardServicesProcessor.Services
                 UseShellExecute = false
             };
 
-            var process = Process.Start(startInfo);
+            Process? process = Process.Start(startInfo);
             if (process != null)
             {
                 await process.WaitForExitAsync();
@@ -411,7 +400,7 @@ namespace CardServicesProcessor.Services
         private static void AddDataToWorksheet<T>(T dt, XLWorkbook workbook, string sheetName) where T : DataTable
         {
             DataTable dtPrev = ReadWorksheetToDataTable(CheckIssuanceConstants.FilePathPrev, sheetName);
-            
+
             // Get the worksheet by name
             bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
 
@@ -441,7 +430,7 @@ namespace CardServicesProcessor.Services
 
         public static void InsertIntoExcelWithComparison(DataTable sourceDataTable, IXLWorksheet worksheet, DataTable comparisonDataTable)
         {
-            var columnName = worksheet.Name switch
+            string columnName = worksheet.Name switch
             {
                 CheckIssuanceConstants.RawData => ColumnNames.TxnReferenceId,
                 CheckIssuanceConstants.MemberMailingInfo => ColumnNames.VendorName,

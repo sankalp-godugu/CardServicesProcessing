@@ -1,5 +1,4 @@
 ﻿using CardServicesProcessor.Models.Response;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace CardServicesProcessor.Shared
 {
@@ -19,7 +18,7 @@ namespace CardServicesProcessor.Shared
             { 3, "Member Check Reimbursement" }
         };
 
-        public static readonly Dictionary<string, Type> SheetNameToTypeMap = new Dictionary<string, Type>
+        public static readonly Dictionary<string, Type> SheetNameToTypeMap = new()
         {
             { "Raw Data", typeof(RawData) },
             { "Member Mailing Info", typeof(MemberMailingInfo) },
