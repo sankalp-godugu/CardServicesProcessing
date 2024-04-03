@@ -45,7 +45,7 @@ namespace CardServicesProcessor
 
                     log.LogInformation("Opening the Excel file at {FilePathCurr}...", CardServicesConstants.FilePathCurr);
                     Stopwatch sw = Stopwatch.StartNew();
-                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
+                    await ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
                     ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
                 });

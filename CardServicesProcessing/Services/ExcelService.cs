@@ -326,7 +326,11 @@ namespace CardServicesProcessor.Services
                 UseShellExecute = false
             };
 
-            await Process.Start(startInfo).WaitForExitAsync();
+            var process = Process.Start(startInfo);
+            if (process != null)
+            {
+                await process.WaitForExitAsync();
+            }
         }
 
         public static void DeleteWorkbook(string filePath)
