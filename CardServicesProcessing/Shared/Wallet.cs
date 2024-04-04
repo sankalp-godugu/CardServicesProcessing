@@ -1,5 +1,4 @@
 ﻿using CardServicesProcessor.Utilities.Constants;
-using System.Linq;
 
 namespace CardServicesProcessor.Shared
 {
@@ -47,18 +46,17 @@ namespace CardServicesProcessor.Shared
             };
         }
 
-        public static string GetWalletFromCommentsOrWalletCol(this string wallet, string? closingComments)
+        public static string? GetWalletFromCommentsOrWalletCol(this string? wallet, string? closingComments)
         {
-            foreach (var kvp in from KeyValuePair<string, string[]> kvp in GetCategoryVariations()
-                                where (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
-                                || wallet.ContainsAny(kvp.Value)
-                                select kvp)
+            foreach (var kvp in GetCategoryVariations()
+                    .Where(kvp => (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
+                                || (wallet.IsTruthy() && wallet.ContainsAny(kvp.Value))))
             {
                 return kvp.Key;
             }
 
             // If no specific category found, return trimmed input
-            return wallet.Trim();
+            return wallet?.Trim();
         }
 
         public static readonly Dictionary<string, string> BenefitDescToWalletName = new()
@@ -164,6 +162,7 @@ namespace CardServicesProcessor.Shared
             { "ZLE", "FLEX" },
             { "ZOV", "Other - Vision, Dental, Hearing, Transportation and GAS" },
             { "ZAC", "Dental, Vision, Hearing, Acupuncture, Chiropractor" }
+            //{ "ZCM", "???" },
             // Add more mappings as needed
         };
 
@@ -207,6 +206,7 @@ namespace CardServicesProcessor.Shared
             { "LEX", "FLEX" },
             { "OVD", "Other - Vision, Dental, Hearing, Transportation and GAS" },
             { "ACD", "Dental, Vision, Hearing, Acupuncture, Chiropractor" }
+            //{ "XXE", "???" }
             // Add more mappings as needed
         };
     }

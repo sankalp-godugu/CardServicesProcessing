@@ -2,6 +2,7 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
+using Microsoft.Extensions.Caching.Memory;
 using System.ComponentModel;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -186,6 +187,14 @@ namespace CardServicesProcessor.Services
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Approved;
                         }
+                        // for cases older than 14 days, close them out if they are in review, declined, or due to IT issues
+                        if (caseStatus != Statuses.Closed && createDate < DateTime.Now.AddDays(-14))
+                        {
+                            caseStatus = Statuses.Closed;
+                            approvedStatus = Statuses.Declined;
+                            if (caseTopic == "Reimbursement") totalApprovedAmount = 0;
+                            processedDate = processedDate is not null ? processedDate : createDate.Value.AddDays(14);
+                        }
 
                         // #2: update ApprovedAmount to value if Approved and amount is 0
                         if (caseTopic == "Reimbursement"
@@ -227,36 +236,16 @@ namespace CardServicesProcessor.Services
                             denialReason = null;
                         }
 
-                        if (true)
-                        {
-                            if (totalApprovedAmount > 0)
-                            {
-                            }
-                            if (totalApprovedAmount is null)
-                            {
-                            }
-                            if (totalApprovedAmount == 0)
-                            {
-                            }
-                        }
-
-
-                        dataRow[ColumnNames.ProcessedDate] = processedDate;
-
                         // consolidate wallets
-                        wallet = wallet.IsTruthy() ? wallet.GetWalletFromCommentsOrWalletCol(closingComments) : wallet;
-
-                        if (caseTopic == "Card Replacement")
+                        if (wallet.IsTruthy() && wallet.ContainsAny(@"// :: AM"))
                         {
-                            if (caseStatus == "Open")
-                            {
-                                caseStatus = Statuses.Closed;
-                            }
+
                         }
-
-                        /*if (caseTicketNbr == "EHCM202400065255-1")
+                        if (!wallet.IsTruthy())
                         {
-                        }*/
+
+                        }
+                        wallet = wallet.IsTruthy() ? wallet : wallet.GetWalletFromCommentsOrWalletCol(closingComments);
 
                         // update rows
                         dataRow.FormatForExcel(ColumnNames.InsuranceCarrier, insuranceCarrier);
@@ -284,7 +273,7 @@ namespace CardServicesProcessor.Services
                         dataRow.FormatForExcel(ColumnNames.ProcessedDate, processedDate?.ToShortDateString());
                         dataRow.FormatForExcel(ColumnNames.ClosingComments, closingComments);
 
-                        //dataRow.FillOutlierData(caseTicketNbr, requestedTotalAmount);
+                        dataRow.FillOutlierData(caseTicketNbr, totalRequestedAmount);
 
                         dt.Rows.Add(dataRow);
                     }
@@ -298,16 +287,85 @@ namespace CardServicesProcessor.Services
             return dt;
         }
 
-        public static void FillMissingInfoFromManualReimbursementReport(string filePath, DataTable dataTable)
+        public static DataTable ReadManualReimbursementReport(string filePath)
         {
-            // Load data from the second Excel file
-            DataTable tblManualReimbursements = ExcelService.ReadManualReimbursementReport(filePath);
+            // Download the Excel file from the SharePoint link
+            /*string userName = "sankalp.godugu@nationsbenefits.com";
+            string password = "Nations@002402728";
+            string downloadPath = @"C:\Users\Sankalp.Godugu\Downloads\ManualAdjustments2023.xlsx";
 
-            foreach (DataRow row in dataTable.Rows)
+            WebClient webClient = new()
+            {
+                Credentials = new NetworkCredential(userName, password)
+            };
+            webClient.DownloadFile(filePath, downloadPath);*/
+
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                _ = Directory.CreateDirectory(directoryPath);
+            }
+
+            DataTable dataTable = new();
+
+            // Load the Excel file
+            using (XLWorkbook workbook = new(filePath))
+            {
+                IXLWorksheet combinedWorksheet = workbook.Worksheets.Add("2023 reimbursements - All");
+
+                foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023 Reimbursements", "2023 Reimbursements-completed")))
+                {
+                    ExcelService.CopyWorksheetData(worksheet, combinedWorksheet, startRow: combinedWorksheet.LastRowUsed()?.RowNumber() + 1 ?? 1);
+                }
+
+                // Assume the first row contains column headers
+                bool isFirstRow = true;
+
+                // Iterate over each row in the worksheet
+                foreach (IXLRow row in combinedWorksheet.RowsUsed())
+                {
+                    // If it's the first row, add column headers to the DataTable
+                    if (isFirstRow)
+                    {
+                        foreach (IXLCell cell in row.CellsUsed())
+                        {
+                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
+                        }
+                        isFirstRow = false;
+                    }
+                    else
+                    {
+                        // Add data rows to the DataTable
+                        DataRow newRow = dataTable.Rows.Add();
+                        int columnIndex = 0;
+                        foreach (IXLCell cell in row.CellsUsed())
+                        {
+                            newRow[columnIndex++] = cell.Value.ToString().Trim();
+                        }
+                    }
+                }
+            }
+            return dataTable;
+        }
+
+        public static void FillMissingInfoFromManualReimbursementReport(string filePath, DataTable tblCMT)
+        {
+            DataTable tblManualReimbursements = ReadManualReimbursementReport(filePath);
+
+            // Load data from the second Excel file
+            /*if (!CacheManager.Cache.TryGetValue("manualReimbursementReport", out DataTable tblManualReimbursements))
+            {
+                // Data not found in cache, fetch from source and store in cache
+                tblManualReimbursements = ReadManualReimbursementReport(filePath);
+                _ = CacheManager.Cache.Set("manualReimbursementReport", tblManualReimbursements, TimeSpan.FromDays(1));
+            }*/
+
+            foreach (DataRow row in tblCMT.Rows)
             {
                 string? caseTicketNumber = row[ColumnNames.CaseTicketNumber].ToString()?.Trim();
+                string? benefitWalletFromCMT = row[ColumnNames.Wallet].ToString()?.Trim();
 
-                if (!caseTicketNumber.IsTruthy())
+                if (!caseTicketNumber.IsTruthy() || benefitWalletFromCMT.IsTruthy())
                 {
                     continue;
                 }
@@ -316,22 +374,23 @@ namespace CardServicesProcessor.Services
                 caseTicketNumber = caseTicketNumber.Contains("-1") ? caseTicketNumber[..^2] : caseTicketNumber;
 
                 // Search for the corresponding row in the second Excel data
-                DataRow[] matchingRows = tblManualReimbursements.Select($"[Case Number] = '{caseTicketNumber}' AND NOT ISNULL([Benefit Wallet], '') = ''");
+                DataRow[] matchingRows = tblManualReimbursements.Select($"[Case Number] like '%{caseTicketNumber}%' AND NOT ISNULL([Benefit Wallet], '') = ''");
 
                 if (matchingRows.Length > 0)
                 {
                     string? benefitWalletFromManualReport = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
-                    string? benefitWalletFromCMT = row[ColumnNames.Wallet].ToString()?.Trim();
 
-                    if (!benefitWalletFromManualReport.IsTruthy() || benefitWalletFromCMT.IsTruthy())
+                    // Handle empty "Case Closed Date" cell or missing "Case Closed Date" column altogether
+                    if (benefitWalletFromManualReport.ContainsNumbersOnly())
                     {
-                        continue;
-                    }
-
-                    // Handle empty "Case Closed Date" cell
-                    if (benefitWalletFromManualReport.ContainsNumbers())
-                    {
-                        benefitWalletFromManualReport = matchingRows[0][ColumnNames.CaseClosedDate].ToString()?.Trim();
+                        if (matchingRows[0].Table.Columns.Contains(ColumnNames.CaseClosedDate))
+                        {
+                            benefitWalletFromManualReport = matchingRows[0][ColumnNames.CaseClosedDate]?.ToString()?.Trim();
+                        }
+                        else
+                        {
+                            benefitWalletFromManualReport = matchingRows[0][ColumnNames.AmountRequested]?.ToString()?.Trim();
+                        }
                     }
 
                     benefitWalletFromManualReport = benefitWalletFromManualReport.StripNumbers();

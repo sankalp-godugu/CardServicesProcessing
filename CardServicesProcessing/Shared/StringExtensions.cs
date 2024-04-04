@@ -185,7 +185,7 @@ namespace CardServicesProcessor.Utilities.Constants
             return input.IsTruthy() ? StripNumbersRegex().Replace(input, "") : "";
         }
 
-        public static bool ContainsNumbers(this string? input)
+        public static bool ContainsNumbersOnly(this string? input)
         {
             return input.IsTruthy() && input.All(char.IsDigit);
         }

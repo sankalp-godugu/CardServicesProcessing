@@ -41,8 +41,8 @@
 			JOIN	ServiceRequest.MemberCaseTickets mct ON mct.CaseID=mc.CaseID
 			JOIN	ServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = 1
 			JOIN	master.Members mem ON mem.NHMemberID = mc.NHMemberID
-			JOIN	Insurance.InsuranceHealthPlans ihp WITH(NOLOCK) ON ihp.InsuranceHealthPlanID = mc.InsuranceHealthPlanID
-			JOIN	Insurance.InsuranceCarriers ic WITH(NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = 1
+			JOIN	Insurance.InsuranceHealthPlans ihp WITH (NOLOCK) ON ihp.InsuranceHealthPlanID = mc.InsuranceHealthPlanID
+			JOIN	Insurance.InsuranceCarriers ic WITH (NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = 1
 			JOIN	ServiceRequest.MemberCaseTopics mcto ON mcto.casetopicid = mct.CaseTopicID
 			JOIN	ServiceRequest.MemberCaseTypeTopicMapping mcttm ON mcttm.CaseTopicID = mcto.CaseTopicID
 			JOIN	ServiceRequest.membercasetypes mcty ON mcty.CaseTypeID = mcttm.CaseTypeID
@@ -52,7 +52,10 @@
 			WHERE	FirstName NOT LIKE '%test%'
 			AND		LastName NOT LIKE '%test%'
 			AND		mc.IsActive = 1
-			AND		addr.AddressTypeCode = 'PERM'";
+			AND		addr.AddressTypeCode = 'PERM'
+			--TEMP
+			AND		mcto.CaseTopicID = 24
+			AND		DATEPART(YEAR, mct.CreateDate) = 2024";
         public static readonly string SelectIntoMemberInsuranceMax = @"
 			SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,

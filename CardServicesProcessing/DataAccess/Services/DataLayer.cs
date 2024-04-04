@@ -57,7 +57,7 @@ namespace CardServicesProcessor.DataAccess.Services
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
 
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
 
             try
             {
@@ -98,7 +98,7 @@ namespace CardServicesProcessor.DataAccess.Services
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
 
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
 
             try
             {

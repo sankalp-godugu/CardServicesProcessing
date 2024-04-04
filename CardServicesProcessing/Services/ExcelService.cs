@@ -81,73 +81,7 @@ namespace CardServicesProcessor.Services
             return dataTable;
         }
 
-        public static DataTable ReadManualReimbursementReport(string filePath)
-        {
-            DataTable dataTable = new();
-
-            // Download the Excel file from the SharePoint link
-            /*string userName = "sankalp.godugu@nationsbenefits.com";
-            string password = "Nations@002402728";
-            string downloadPath = @"C:\Users\Sankalp.Godugu\Downloads\ManualAdjustments2023.xlsx";
-
-            WebClient webClient = new()
-            {
-                Credentials = new NetworkCredential(userName, password)
-            };
-            webClient.DownloadFile(filePath, downloadPath);*/
-
-            string directoryPath = Path.GetDirectoryName(filePath);
-            if (!Directory.Exists(directoryPath))
-            {
-                _ = Directory.CreateDirectory(directoryPath);
-            }
-
-            // Load the Excel file
-            using (XLWorkbook workbook = new(filePath))
-            {
-                IXLWorksheet workingReimbursements = workbook.Worksheet(1);
-                IXLWorksheet nextBatchReimbursements = workbook.Worksheet(2);
-                IXLWorksheet combinedSheet = workbook.Worksheets.Add("2023 Reimbursements");
-                // Create a new worksheet to combine the data
-                IXLWorksheet worksheet = workbook.Worksheets.Add("worksheet");
-
-                // Copy data from the first worksheet to the combined worksheet
-                CopyWorksheetData(workingReimbursements, worksheet);
-
-                // Copy data from the second worksheet to the combined worksheet
-                CopyWorksheetData(nextBatchReimbursements, worksheet, startRow: worksheet.LastRowUsed().RowNumber() + 1);
-
-                // Assume the first row contains column headers
-                bool isFirstRow = true;
-
-                // Iterate over each row in the worksheet
-                foreach (IXLRow row in worksheet.RowsUsed())
-                {
-                    // If it's the first row, add column headers to the DataTable
-                    if (isFirstRow)
-                    {
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
-                        }
-                        isFirstRow = false;
-                    }
-                    else
-                    {
-                        // Add data rows to the DataTable
-                        DataRow newRow = dataTable.Rows.Add();
-                        int columnIndex = 0;
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            newRow[columnIndex++] = cell.Value.ToString().Trim();
-                        }
-                    }
-                }
-            }
-            return dataTable;
-        }
-
-        private static void CopyWorksheetData(IXLWorksheet sourceWorksheet, IXLWorksheet targetWorksheet, int startRow = 1)
+        public static void CopyWorksheetData(IXLWorksheet sourceWorksheet, IXLWorksheet targetWorksheet, int startRow = 1)
         {
             // Get the range of used cells in the source worksheet
             IXLRange sourceRange = sourceWorksheet.RangeUsed();
@@ -167,7 +101,7 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? requestedTotalAmount)
+        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? totalRequestedAmount)
         {
             if (!caseTicketNumber.IsTruthy())
             {
@@ -177,6 +111,31 @@ namespace CardServicesProcessor.Services
             // Handle specific caseTicketNumbers
             switch (caseTicketNumber)
             {
+                case "EHCM202400067062-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 50.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    break;
+                case "EHCM202400068489-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 16.95.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    break;
+                case "EHCM202400070637-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 13.50.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    break;
+                case "EHCM202400070871-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 178.40.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    break;
+                case "EHCM202400070901-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 1.29.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved); // IT issue w/ wallet dropdown
+                    break;
                 case "EHCM202400062886-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 300.ToString("C2"));
                     break;
@@ -184,41 +143,93 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 50.ToString("C2"));
                     break;
                 case "EHCM202400070732-1":
-                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, requestedTotalAmount?.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.ClosingComments, null);
                     break;
                 case "EHCM202400070290-1":
-                    dataRow.FormatForExcel(ColumnNames.DenialReason, "Ineligible Retailer (not allowed)");
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.IneligibleRetailer);
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
-                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     break;
                 case "EHCM202400068493-1":
-                    dataRow.FormatForExcel(ColumnNames.DenialReason, "Not a Reimbursement");
-                    dataRow.FormatForExcel(ColumnNames.CaseStatus, "Closed");
-                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, "Declined");
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.NotReimbursement);
+                    dataRow.FormatForExcel(ColumnNames.CaseStatus, Statuses.Closed);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     break;
-                case "EHCM202400063018-1" or "EHCM202400065349-1" or "EHCM202400063182-1" or "EHCM202400070873-1" or "EHCM202400070955-1" or "EHCM202400070803-1" or "EHCM202400070761-1" or "EHCM202400070772-1":
+                case "EHCM202400063018-1":
+                case "EHCM202400065349-1":
+                case "EHCM202400063182-1":
+                case "EHCM202400070873-1":
+                case "EHCM202400070955-1":
+                case "EHCM202400070803-1":
+                case "EHCM202400070761-1":
+                case "EHCM202400070772-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
                     break;
-                case "EHCM202400067263-1" or "EHCM202400066272-1":
+                case "EHCM202400067263-1":
+                case "EHCM202400066272-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ActiveFitness);
                     break;
-                case "EHCM202400068961-1" or "EHCM202400070137-1":
+                case "EHCM202400068961-1":
+                case "EHCM202400070137-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.AssistiveDevices);
                     break;
                 case "EHCM202400070711-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
                     break;
-                case "EHCM202400069504-1" or "EHCM202400069623-1" or "EHCM202400069818-1" or "EHCM202400065264-1" or "EHCM202400062994-1" or "EHCM202400070836-1" or "EHCM202400070820-1" or "EHCM202400070892-1" or "EHCM202400070908-1" or "EHCM202400071226-1":
+                case "EHCM202400069504-1":
+                case "EHCM202400069623-1":
+                case "EHCM202400069818-1":
+                case "EHCM202400065264-1":
+                case "EHCM202400062994-1":
+                case "EHCM202400070836-1":
+                case "EHCM202400070820-1":
+                case "EHCM202400070892-1":
+                case "EHCM202400070908-1":
+                case "EHCM202400071226-1":
+                case "NBCM202400082278-1":
+                case "NBCM202400082281-1":
+                case "NBCM202400082283-1":
+                case "NBCM202400082285-1":
+                case "NBCM202400082286-1":
+                case "NBCM202400082287-1":
+                case "NBCM202400082288-1":
+                case "NBCM202400082289-1":
+                case "NBCM202400084107-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
                     break;
-                case "EHCM202400064404-1" or "EHCM202400066581-1" or "EHCM202400069229-1" or "EHCM202400070780-1" or "EHCM202400070880-1" or "EHCM202400070832-1" or "EHCM202400070860-1" or "EHCM202400070984-1" or "EHCM202400070801-1" or "EHCM202400063415-1" or "EHCM202400066888-1" or "EHCM202400070736-1" or "EHCM202400070754-1" or "EHCM202400070715-1":
+                case "EHCM202400064404-1":
+                case "EHCM202400066581-1":
+                case "EHCM202400069229-1":
+                case "EHCM202400070780-1":
+                case "EHCM202400070880-1":
+                case "EHCM202400070832-1":
+                case "EHCM202400070860-1":
+                case "EHCM202400070984-1":
+                case "EHCM202400070801-1":
+                case "EHCM202400063415-1":
+                case "EHCM202400066888-1":
+                case "EHCM202400070736-1":
+                case "EHCM202400070754-1":
+                case "EHCM202400070715-1":
+                case "NBCM202400087650-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
                     break;
                 case "EHCM202400071155-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ServiceDog);
                     break;
-                case "EHCM202400070738-1" or "EHCM202400070768-1":
+                case "EHCM202400070738-1":
+                case "EHCM202400070768-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
+                    break;
+                case "NBCM202400076542-1":
+                case "NBCM202400081906-1":
+                case "NBCM202400082920-1":
+                case "NBCM202400083104-1":
+                case "NBCM202400083283-1":
+                case "NBCM202400083445-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Rewards);
                     break;
             }
         }

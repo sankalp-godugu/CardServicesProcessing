@@ -13,7 +13,7 @@ namespace CardServicesProcessor
 {
     public static class CaseProcessor
     {
-        public static async Task<IActionResult> ProcessAllCases(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache)
+        public static async Task<IActionResult> ProcessAllCases(IConfiguration config, IDataLayer dataLayer, ILogger log)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace CardServicesProcessor
                         }
                     ];
 
-                    await ProcessReports(config, dataLayer, log, cache, reportSettings);
+                    await ProcessReports(config, dataLayer, log, reportSettings);
 
                     log.LogInformation("Opening the Excel file at {FilePathCurr}...", CardServicesConstants.FilePathCurr);
                     Stopwatch sw = Stopwatch.StartNew();
@@ -59,7 +59,7 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, IMemoryCache cache, List<ReportInfo> reportSettings)
+        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<ReportInfo> reportSettings)
         {
             foreach (ReportInfo settings in reportSettings)
             {
@@ -70,11 +70,11 @@ namespace CardServicesProcessor
                 log.LogInformation("{SheetName} > Querying for cases...", settings.SheetName);
                 sw.Start();
                 // Check if data exists in cache
-                if (!cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
+                if (!CacheManager.Cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
                 {
                     // Data not found in cache, fetch from source and store in cache
                     response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log);
-                    _ = cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
+                    _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
