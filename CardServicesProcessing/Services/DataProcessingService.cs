@@ -193,7 +193,8 @@ namespace CardServicesProcessor.Services
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Declined;
                             if (caseTopic == "Reimbursement") totalApprovedAmount = 0;
-                            processedDate = processedDate is not null ? processedDate : createDate.Value.AddDays(14);
+                            processedDate = processedDate.HasValue ? processedDate : createDate.Value.AddDays(14);
+                            denialReason = denialReason.IsTruthy() ? denialReason: DenialReasons.BenefitUtilized;
                         }
 
                         // #2: update ApprovedAmount to value if Approved and amount is 0

@@ -231,6 +231,10 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400083445-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Rewards);
                     break;
+                case "NBCM202400083351-1":
+                case "NBCM202400083346-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 150.ToString("C2"));
+                    break;
             }
         }
 

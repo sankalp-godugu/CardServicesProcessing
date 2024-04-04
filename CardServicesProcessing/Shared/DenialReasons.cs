@@ -4,5 +4,6 @@
     {
         public const string NotReimbursement = "Not a Reimbursement";
         public const string IneligibleRetailer = "Ineligible Retailer (not allowed)";
+        public const string BenefitUtilized = "Benefit utilized (no money available)";
     }
 }
