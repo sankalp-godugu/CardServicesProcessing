@@ -48,6 +48,11 @@ namespace CardServicesProcessor.Utilities.Constants
             return !string.IsNullOrWhiteSpace(value) && !value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
         }
 
+        public static string? GetDenialReason(this string? value)
+        {
+            return value.IsTruthy() ? value : null;
+        }
+
         public static bool IsNA(this decimal? value)
         {
             // Check if the value is null

@@ -11,6 +11,7 @@
             "approved for",
             "approval for",
             "case approved",
+            "approved case",
             "advised of partial approval amount"
         ];
         public static readonly string[] DeclinedVariations = [
@@ -23,7 +24,8 @@
             "denied",
             "duplicate",
             "case declined",
-            "case denied"
+            "case denied",
+            "Case closed due to being a storefront order reshipment request"
         ];
     }
 }

@@ -187,16 +187,40 @@ namespace CardServicesProcessor.Services
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Approved;
                         }
+
+                        if (caseTicketNbr.IsTruthy() && caseTicketNbr.ContainsAny(
+                            "EHCM202400065507-1", "EHCM202400063562-1", "NBCM202400069903-1", // missing processed date and/or denial reason
+                            "NBCM202400075178-1", "NBCM202400075627-1", "NBCM202400079733-1", // missing approved amount
+                            "NBCM202400069903-1", "NBCM202400079345-1") // missing denial reason
+                            ) 
+                        {
+
+                        }
+
                         // for cases older than 14 days, close them out if they are in review, declined, or due to IT issues
                         if (caseStatus != Statuses.Closed && createDate < DateTime.Now.AddDays(-14))
                         {
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Declined;
-                            if (caseTopic == "Reimbursement") totalApprovedAmount = 0;
-                            processedDate = processedDate.HasValue ? processedDate : createDate.Value.AddDays(14);
-                            denialReason = denialReason.IsTruthy() ? denialReason: DenialReasons.BenefitUtilized;
+                            if (caseTopic == "Reimbursement")
+                            {
+                                totalApprovedAmount = 0;
+                            }
                         }
 
+                        // denial reason
+                        if (caseTopic == "Reimbursement")
+                        {
+                            if (approvedStatus == Statuses.Declined) denialReason = denialReason.IsTruthy() ? denialReason : DenialReasons.BenefitUtilized;
+                            else denialReason = null;
+                        }
+
+                        // processed date
+                        if (!processedDate.HasValue && caseStatus == Statuses.Closed)
+                        {
+                            processedDate = createDate.Value.AddDays(14);
+                        }
+                        
                         // #2: update ApprovedAmount to value if Approved and amount is 0
                         if (caseTopic == "Reimbursement"
                             && caseTicketData.IsTruthy()
@@ -231,21 +255,7 @@ namespace CardServicesProcessor.Services
                             totalApprovedAmount = 0;
                         }
 
-                        // #5: updated denial reason
-                        if (approvedStatus == Statuses.Approved && denialReason.IsTruthy())
-                        {
-                            denialReason = null;
-                        }
-
                         // consolidate wallets
-                        if (wallet.IsTruthy() && wallet.ContainsAny(@"// :: AM"))
-                        {
-
-                        }
-                        if (!wallet.IsTruthy())
-                        {
-
-                        }
                         wallet = wallet.IsTruthy() ? wallet : wallet.GetWalletFromCommentsOrWalletCol(closingComments);
 
                         // update rows

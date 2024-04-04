@@ -115,26 +115,31 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 50.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, null);
                     break;
                 case "EHCM202400068489-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 16.95.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, null);
                     break;
                 case "EHCM202400070637-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 13.50.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, null);
                     break;
                 case "EHCM202400070871-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 178.40.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, null);
                     break;
                 case "EHCM202400070901-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 1.29.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Approved); // IT issue w/ wallet dropdown
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, null);
                     break;
                 case "EHCM202400062886-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 300.ToString("C2"));
@@ -145,17 +150,17 @@ namespace CardServicesProcessor.Services
                 case "EHCM202400070732-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
-                    dataRow.FormatForExcel(ColumnNames.ClosingComments, null);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.BenefitUtilized);
                     break;
                 case "EHCM202400070290-1":
-                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.IneligibleRetailer);
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.IneligibleRetailer);
                     break;
                 case "EHCM202400068493-1":
-                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.NotReimbursement);
                     dataRow.FormatForExcel(ColumnNames.CaseStatus, Statuses.Closed);
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.NotReimbursement);
                     break;
                 case "EHCM202400063018-1":
                 case "EHCM202400065349-1":
@@ -234,6 +239,17 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400083351-1":
                 case "NBCM202400083346-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 150.ToString("C2"));
+                    break;
+                case "NBCM202400075178-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.NotReimbursement);
+                    break;
+                case "NBCM202400075627-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.IneligibleRetailer);
+                    break;
+                case "NBCM202400079733-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 27.39.ToString("C2"));
                     break;
             }
         }
@@ -331,10 +347,6 @@ namespace CardServicesProcessor.Services
             };
 
             Process? process = Process.Start(startInfo);
-            if (process != null)
-            {
-                await process.WaitForExitAsync();
-            }
         }
 
         public static void DeleteWorkbook(string filePath)

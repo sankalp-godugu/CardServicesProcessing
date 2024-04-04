@@ -54,8 +54,8 @@
 			AND		mc.IsActive = 1
 			AND		addr.AddressTypeCode = 'PERM'
 			--TEMP
-			AND		mcto.CaseTopicID = 24
-			AND		DATEPART(YEAR, mct.CreateDate) = 2024";
+			--AND		mcto.CaseTopicID = 24
+			--AND		DATEPART(YEAR, mct.CreateDate) = 2024";
         public static readonly string SelectIntoMemberInsuranceMax = @"
 			SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,
