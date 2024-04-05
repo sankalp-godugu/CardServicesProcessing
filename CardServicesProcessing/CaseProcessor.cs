@@ -23,29 +23,30 @@ namespace CardServicesProcessor
                     [
                         new()
                         {
-                            SheetName = CardServicesConstants.Nations.SheetName,
-                            SheetPrev = CardServicesConstants.Nations.SheetPrev,
-                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
-                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
-                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
-                            SheetDraftIndex = CardServicesConstants.Nations.SheetDraftIndex
-                        },
-                        new()
-                        {
                             SheetName = CardServicesConstants.Elevance.SheetName,
                             SheetPrev = CardServicesConstants.Elevance.SheetPrev,
                             SheetRaw = CardServicesConstants.Elevance.SheetRaw,
                             SheetDraft = CardServicesConstants.Elevance.SheetDraft,
                             SheetFinal = CardServicesConstants.Elevance.SheetFinal,
-                            SheetDraftIndex = CardServicesConstants.Elevance.SheetDraftIndex
-                        }
+                            SheetDraftIndex = CardServicesConstants.Elevance.SheetFinalIndex
+                        },
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Nations.SheetName,
+                            SheetPrev = CardServicesConstants.Nations.SheetPrev,
+                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
+                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
+                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
+                            SheetDraftIndex = CardServicesConstants.Nations.SheetFinalIndex
+                        },
+                        
                     ];
 
                     await ProcessReports(config, dataLayer, log, reportSettings);
 
                     log.LogInformation("Opening the Excel file at {FilePathCurr}...", CardServicesConstants.FilePathCurr);
                     Stopwatch sw = Stopwatch.StartNew();
-                    await ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
+                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
                     ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
                 });
@@ -111,7 +112,7 @@ namespace CardServicesProcessor
 
                 log.LogInformation("{SheetName} > Writing to Excel and applying filters...", settings.SheetName);
                 sw.Restart();
-                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetDraft, settings.SheetDraftIndex);
+                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetDraftIndex);
                 sw.Stop();
                 ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
             }

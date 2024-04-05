@@ -12,43 +12,33 @@ namespace CardServicesProcessor.Shared
         public const string HealthyGroceries = "Healthy Groceries";
         public const string OTC = "OTC";
         public const string PERS = "PERS";
+        public const string Rewards = "Rewards";
         public const string ServiceDog = "Service Dog";
         public const string Transportation = "Transportation";
         public const string Utilities = "Utilities";
+        public const string NA = "N/A";
         public const string Unknown = "Unknown";
-        // wallets from z purse mapping
-        public const string Rewards = "Rewards";
-
-        public static readonly string[] AssistiveDevicesVariations = ["assistive devices"];
-        public static readonly string[] ActiveFitnessVariations = ["fitness", "AAF"];
-        public static readonly string[] DvhVariations = ["dvh", "dhv", "vdh", "vhd", "hvd", "hdv", "dental", "vision", "hearing", "ZVD2300"];
-        public static readonly string[] HgVariations = ["hg", "grocer", "heg", "healthy food", "FOD2312"];
-        public static readonly string[] OtcVariations = ["otc", "over the counter", "ESM"];
-        public static readonly string[] PersVariations = [" pers "];
-        public static readonly string[] RewardsVariations = ["Wellness your way", "Open Spend - Unrestricted Rewards"];
-        public static readonly string[] ServiceVariations = ["service dog", " dog "];
-        public static readonly string[] UtilityVariations = ["utility", "utilities", "utl", "parking"];
-        public static readonly string[] OtherBenefitTypes = ["y", "yes", "n", "no", "denied", "ptc", "none"];
 
         public static Dictionary<string, string[]> GetCategoryVariations()
         {
             return new Dictionary<string, string[]>
             {
-                { ActiveFitness, ActiveFitnessVariations },
-                { AssistiveDevices, AssistiveDevicesVariations },
-                { DVH, DvhVariations },
-                { HealthyGroceries, HgVariations },
-                { OTC, OtcVariations },
-                { PERS, PersVariations },
-                { Rewards, RewardsVariations },
-                { ServiceDog, ServiceVariations },
-                { Utilities, UtilityVariations }
+                { ActiveFitness, Variations.ActiveFitnessVariations },
+                { AssistiveDevices, Variations.AssistiveDevicesVariations },
+                { DVH, Variations.DvhVariations },
+                { HealthyGroceries, Variations.HgVariations },
+                { OTC, Variations.OtcVariations },
+                { PERS, Variations.PersVariations },
+                { Rewards, Variations.RewardsVariations },
+                { ServiceDog, Variations.ServiceVariations },
+                { Utilities, Variations.UtilityVariations },
+                { NA, Variations.NaVariations }
             };
         }
 
         public static string? GetWalletFromCommentsOrWalletCol(this string? wallet, string? closingComments)
         {
-            foreach (var kvp in GetCategoryVariations()
+            foreach (KeyValuePair<string, string[]> kvp in GetCategoryVariations()
                     .Where(kvp => (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
                                 || (wallet.IsTruthy() && wallet.ContainsAny(kvp.Value))))
             {
@@ -58,68 +48,6 @@ namespace CardServicesProcessor.Shared
             // If no specific category found, return trimmed input
             return wallet?.Trim();
         }
-
-        public static readonly Dictionary<string, string> BenefitDescToWalletName = new()
-        {
-            // active fitness
-            { "Active Fitness", ActiveFitness },
-            { "Account Active Fitness", ActiveFitness },
-
-            // assistive devices
-            { "Assistive Devices", AssistiveDevices },
-            { "Embedded Assistive Devices", AssistiveDevices },
-
-            // dental, vision, hearing
-            { "Vision, Dental, Hearing", DVH },
-            { "Dental, Vision, Hearing", DVH },
-            { "Vision", DVH },
-            { "Dental", DVH },
-            { "Hearing", DVH },
-            { "DVH", DVH },
-            { "Flex-DVH", DVH },
-            { "Flex DVH", DVH },
-            { "Flex-Vision only", DVH },
-            { "Flex-Dental", DVH },
-            { "DHV", DVH },
-            { "VDH", DVH },
-            { "VHD", DVH },
-            { "HVD", DVH },
-            { "HDV", DVH },
-            { "ZVD", DVH },
-            { "Essential Extras Flex Account DVH", DVH },
-            { "Everyday Options Allowance for Dental, Vision, and Hearing", DVH },
-
-            // healthy food
-            { "Healthy Food", HealthyGroceries },
-            { "HG", HealthyGroceries },
-            { "FOD", HealthyGroceries },
-            { "Healthy Groceries [FOD]", HealthyGroceries },
-            { "Groceries", HealthyGroceries },
-
-            // over the counter
-            { "OTC", OTC },
-            { "Over the Counter", OTC },
-            { "ESM", OTC },
-
-            { "PERS", PERS },
-
-            // rewards
-            { "Rewards", Rewards },
-            { "Open Spend - Unrestricted Rewards", Rewards },
-
-            { "Service Dog", ServiceDog },
-
-            // transportation
- 
-
-            // utilities
-            { "Gas and Utilities", Utilities },
-            { "Utilities", Utilities },
-            { "Utilites and Bathroom Safety", Utilities },
-            { "Parking", Utilities },
-            
-            // Add more mappings as needed
-        };
 
         // Create a dictionary to map Z Purse values to BenefitDesc values
         public static readonly Dictionary<string, string> zPurseToBenefitDesc = new()
@@ -161,8 +89,8 @@ namespace CardServicesProcessor.Shared
             { "ZPA", "Parking" },
             { "ZLE", "FLEX" },
             { "ZOV", "Other - Vision, Dental, Hearing, Transportation and GAS" },
-            { "ZAC", "Dental, Vision, Hearing, Acupuncture, Chiropractor" }
-            //{ "ZCM", "???" },
+            { "ZAC", "Dental, Vision, Hearing, Acupuncture, Chiropractor" },
+            { "ZCM", "OTC & Grocery" },
             // Add more mappings as needed
         };
 
@@ -205,8 +133,8 @@ namespace CardServicesProcessor.Shared
             { "PAR", "Parking" },
             { "LEX", "FLEX" },
             { "OVD", "Other - Vision, Dental, Hearing, Transportation and GAS" },
-            { "ACD", "Dental, Vision, Hearing, Acupuncture, Chiropractor" }
-            //{ "XXE", "???" }
+            { "ACD", "Dental, Vision, Hearing, Acupuncture, Chiropractor" },
+            { "XXE", "Dental & Hearing" }
             // Add more mappings as needed
         };
     }

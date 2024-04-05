@@ -20,8 +20,8 @@
         public string? CaseTicketData { get; set; }
         public string? WalletValue { get; set; }
         public string? DenialReason { get; set; }
-        public string? RequestedTotalReimbursementAmount { get; set; }
-        public string? ApprovedTotalReimbursementAmount { get; set; }
+        public string? RequestedTotalAmount { get; set; }
+        public string? ApprovedTotalAmount { get; set; }
         public string? CaseStatus { get; set; }
         public string? ApprovedStatus { get; set; }
         public string? ProcessedDate { get; set; }

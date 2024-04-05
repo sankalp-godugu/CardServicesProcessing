@@ -17,7 +17,7 @@
             public static readonly string SheetRaw = "ELV - Raw";
             public static readonly string SheetDraft = "ELV - Draft";
             public static readonly string SheetFinal = "ELV - Final";
-            public static readonly int SheetDraftIndex = 1;
+            public static readonly int SheetFinalIndex = 1;
         }
 
         public static class Nations
@@ -27,7 +27,7 @@
             public static readonly string SheetRaw = "NB - Raw";
             public static readonly string SheetDraft = "NB - Draft";
             public static readonly string SheetFinal = "NB - Final";
-            public static readonly int SheetDraftIndex = 2;
+            public static readonly int SheetFinalIndex = 2;
         }
     }
 }

@@ -4,18 +4,26 @@ using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
 using System.Data;
 using System.Diagnostics;
+using DataTable = System.Data.DataTable;
 
 namespace CardServicesProcessor.Services
 {
     public static class ExcelService
     {
-        public static DataTable ReadWorksheetToDataTable(string filePath, string sheetName)
+        /// <summary>
+        /// Reads an Excel worksheet
+        /// </summary>
+        /// <param name="filePath">fully qualified path to excel file</param>
+        /// <param name="worksheetName">name of the worksheet to read</param>
+        /// <returns>Datatable</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static DataTable ReadWorksheetToDataTable(string filePath, string worksheetName)
         {
             DataTable dataTable = new();
 
             using (XLWorkbook workbook = new(filePath))
             {
-                IXLWorksheet worksheet = workbook.Worksheet(sheetName);
+                IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
 
                 // Get the headers from the first row
                 List<string> headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
@@ -41,46 +49,12 @@ namespace CardServicesProcessor.Services
             return dataTable;
         }
 
-        public static DataTable ReadPrevCheckIssuanceReport(string filePath, string worksheetName)
-        {
-            DataTable dataTable = new();
-
-            // Load the Excel file
-            using (XLWorkbook workbook = CreateWorkbook(filePath))
-            {
-                // Get the worksheet by name
-                IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
-
-                // Assume the first row contains column headers
-                bool isFirstRow = true;
-
-                // Iterate over each row in the worksheet
-                foreach (IXLRow row in worksheet.RowsUsed())
-                {
-                    // If it's the first row, add column headers to the DataTable
-                    if (isFirstRow)
-                    {
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
-                        }
-                        isFirstRow = false;
-                    }
-                    else
-                    {
-                        // Add data rows to the DataTable
-                        DataRow newRow = dataTable.Rows.Add();
-                        int columnIndex = 0;
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            newRow[columnIndex++] = cell.Value.ToString().Trim();
-                        }
-                    }
-                }
-            }
-            return dataTable;
-        }
-
+        /// <summary>
+        /// Copies data from one worksheet to another
+        /// </summary>
+        /// <param name="sourceWorksheet">worksheet containing the data to be copied over</param>
+        /// <param name="targetWorksheet">worksheet to copy the data to</param>
+        /// <param name="startRow">the row to start copying the data from</param>
         public static void CopyWorksheetData(IXLWorksheet sourceWorksheet, IXLWorksheet targetWorksheet, int startRow = 1)
         {
             // Get the range of used cells in the source worksheet
@@ -101,15 +75,20 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNumber, decimal? totalRequestedAmount)
+        /// <summary>
+        /// Fill in missing data for outliers
+        /// </summary>
+        /// <param name="dataRow"></param>
+        /// <param name="caseTicketNbr"></param>
+        /// <param name="totalRequestedAmount"></param>
+        public static void FillOutlierData(this DataRow dataRow, string? caseTicketNbr)
         {
-            if (!caseTicketNumber.IsTruthy())
+            if (!caseTicketNbr.IsTruthy())
             {
                 return;
             }
 
-            // Handle specific caseTicketNumbers
-            switch (caseTicketNumber)
+            switch (caseTicketNbr)
             {
                 case "EHCM202400067062-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 50.ToString("C2"));
@@ -202,6 +181,7 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400082288-1":
                 case "NBCM202400082289-1":
                 case "NBCM202400084107-1":
+                case "NBCM202400072231-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.HealthyGroceries);
                     break;
                 case "EHCM202400064404-1":
@@ -254,64 +234,121 @@ namespace CardServicesProcessor.Services
             }
         }
 
+        /// <summary>
+        /// Apply default filters on Excel worksheet
+        /// </summary>
+        /// <param name="dataTable"></param>
+        /// <param name="filePath"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="sheetPos"></param>
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)
         {
             XLWorkbook workbook = CreateWorkbook(filePath);
 
             // Check if the worksheet exists
-            if (workbook.TryGetWorksheet(sheetName, out _))
-            {
-                // If it exists, delete it
-                workbook.Worksheets.Delete(sheetName);
-            }
+            DeleteWorkbook(filePath);
 
             // Add a new worksheet with the same name
             IXLWorksheet worksheet = workbook.Worksheets.Add(sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
-            // Remove empty columns (if any)
+            // Remove empty columns after the specified index
+            RemoveEmptyColumns(dataTable, ColumnNames.ClosingComments);
+
+            // Insert DataTable into the worksheet
+            worksheet.Cell(1, 1).InsertTable(dataTable, false);
+
+            // Format header row
+            FormatHeaderRow(worksheet.Row(1));
+
+            // Freeze header row
+            FreezeHeaderRow(worksheet);
+
+            // Set number formats for specific columns
+            SetNumberFormats(worksheet);
+
+            // Set column widths
+            SetColumnWidths(worksheet);
+
+            // Apply filters to specific columns
+            ApplyFilters(worksheet, 14, "Reimbursement");
+            ApplyFilters(worksheet, 5, "2024");
+
+            // Save the workbook
+            workbook.SaveAs(filePath);
+        }
+
+        private static void RemoveEmptyColumns(DataTable dataTable, string columnName)
+        {
             int totalColumns = dataTable.Columns.Count;
-            // Remove columns after the startIndex
-            for (int i = totalColumns - 1; i > dataTable.Columns.IndexOf("Closing Comments"); i--)
+            for (int i = totalColumns - 1; i > dataTable.Columns.IndexOf(columnName); i--)
             {
                 dataTable.Columns.RemoveAt(i);
             }
+        }
 
-            // Insert the DataTable into the new worksheet starting from cell A1
-            _ = worksheet.Cell(1, 1).InsertTable(dataTable, false);
-
-            IXLRow headerRow = worksheet.Row(1);
+        private static void FormatHeaderRow(IXLRow headerRow)
+        {
             headerRow.Style.Fill.BackgroundColor = XLColor.Orange;
             headerRow.Style.Font.Bold = true;
+        }
 
-            // Freeze the header row
-            worksheet.SheetView.FreezeRows(1); // Freeze the first row (header row)
+        private static void FreezeHeaderRow(IXLWorksheet worksheet)
+        {
+            worksheet.SheetView.FreezeRows(1);
+        }
 
-            // Set the number format of the entire date column to short date format
-            _ = worksheet.Column(5).Style.NumberFormat.Format = "MM/dd/yyyy";
-            _ = worksheet.Column(6).Style.NumberFormat.Format = "MM/dd/yyyy";
-            _ = worksheet.Column(23).Style.NumberFormat.Format = "MM/dd/yyyy";
-            _ = worksheet.Column(9).Style.NumberFormat.Format = "MM/dd/yyyy";
-            _ = worksheet.Column(19).Style.NumberFormat.Format = "$#,##0.00";
-            _ = worksheet.Column(20).Style.NumberFormat.Format = "$#,##0.00";
-
-            // Set column widths to fit data except for JSON cols
-            double staticWidth = 20; // Static width size
-            for (int colIndex = 1; colIndex <= worksheet.ColumnsUsed().Count(); colIndex++)
+        private static void SetNumberFormats(IXLWorksheet worksheet)
+        {
+            foreach (IXLColumn column in worksheet.Columns())
             {
-                // Set static width for column 5 and 10
-                worksheet.Column(colIndex).Width = staticWidth;
+                XLDataType dataType = GetColumnType(column);
+                string format = GetFormatForDataType(dataType);
+                column.Style.NumberFormat.Format = format;
             }
+        }
 
-            // Apply filters to all columns
-            _ = worksheet.SetAutoFilter(true).Column(14).AddFilter("Reimbursement");
-            _ = worksheet.SetAutoFilter(true).Column(5).Contains("2024");
+        private static XLDataType GetColumnType(IXLColumn column)
+        {
+            // Check the data type of the cells in the column
+            bool isNumeric = column.Cells().All(cell => cell.DataType == XLDataType.Number);
+            bool isDate = column.Cells().All(cell => cell.DataType == XLDataType.DateTime);
 
-            // Apply sort filter to the "Date" column in ascending order
-            int lastRow = worksheet.LastRowUsed().RowNumber();
-            IXLRange rangeToSort = worksheet.Range(worksheet.Cell(2, 5), worksheet.Cell(lastRow, 5));
-            _ = rangeToSort.Column(5).Sort(XLSortOrder.Ascending, false, true);
+            if (isNumeric)
+            {
+                return XLDataType.Number;
+            }
+            else if (isDate)
+            {
+                return XLDataType.DateTime;
+            }
+            else
+            {
+                return XLDataType.Text;
+            }
+        }
 
-            workbook.SaveAs(filePath);
+        private static string GetFormatForDataType(XLDataType dataType)
+        {
+            return dataType switch
+            {
+                XLDataType.Number => "$#,##0.00",
+                XLDataType.DateTime => "MM/dd/yyyy",
+                XLDataType.Text => "@",// General text format
+                _ => "",
+            };
+        }
+
+        private static void SetColumnWidths(IXLWorksheet worksheet, int width = 20)
+        {
+            foreach (IXLColumn column in worksheet.ColumnsUsed())
+            {
+                column.Width = width;
+            }
+        }
+
+        private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria, XLFilterType filterType = XLFilterType.Regular)
+        {
+            worksheet.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)
@@ -325,7 +362,12 @@ namespace CardServicesProcessor.Services
             return File.Exists(filePath) ? new XLWorkbook(filePath) : new XLWorkbook();
         }
 
-        public static async Task OpenExcel(string filePath)
+        /// <summary>
+        /// Opens the Excel file
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        public static void OpenExcel(string filePath)
         {
             // Path to Excel executable
             string excelPath = File.Exists(@"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE") ?
@@ -345,8 +387,7 @@ namespace CardServicesProcessor.Services
                 Arguments = $"\"{filePath}\"",
                 UseShellExecute = false
             };
-
-            Process? process = Process.Start(startInfo);
+            _ = Process.Start(startInfo);
         }
 
         public static void DeleteWorkbook(string filePath)

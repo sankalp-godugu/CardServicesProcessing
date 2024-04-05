@@ -2,7 +2,6 @@
 using CardServicesProcessor.Shared;
 using CardServicesProcessor.Utilities.Constants;
 using ClosedXML.Excel;
-using Microsoft.Extensions.Caching.Memory;
 using System.ComponentModel;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -106,7 +105,6 @@ namespace CardServicesProcessor.Services
                         string? caseTicketNbr = cssCase.CaseTicketNumber?.Trim();
                         string? caseCategory = cssCase.CaseCategory?.Trim() == "Case" ? "Card Services" : "Unknown";
                         DateTime? createDate = cssCase.CreateDate?.ParseAndConvertDateTime(ColumnNames.CreateDate);
-                        //DateTime? transactionDate = cssCase.TransactionDate?.ParseAndConvertDateTime(ColumnNames.TransactionDate);
                         string? firstName = cssCase.FirstName?.ToPascalCase().Trim();
                         string? lastName = cssCase.LastName?.ToPascalCase().Trim();
                         DateTime? dob = cssCase.DateOfBirth?.ParseAndConvertDateTime(ColumnNames.DateOfBirth);
@@ -119,8 +117,7 @@ namespace CardServicesProcessor.Services
                         string? caseTicketData = cssCase.CaseTicketData?.Trim();
                         string? wallet = cssCase.WalletValue?.Trim();
                         string? denialReason = cssCase.DenialReason?.Trim();
-                        //decimal? requestedTotalAmount = cssCase.RequestedTotalReimbursementAmount?.ParseAmount(ColumnNames.RequestedTotalReimbursementAmount);
-                        decimal? totalApprovedAmount = cssCase.ApprovedTotalReimbursementAmount?.ParseAmount(ColumnNames.ApprovedTotalReimbursementAmount);
+                        decimal? totalApprovedAmount = cssCase.ApprovedTotalAmount?.ParseAmount(ColumnNames.ApprovedTotalReimbursementAmount);
                         string? caseStatus = cssCase.CaseStatus?.Trim();
                         string? approvedStatus = cssCase.ApprovedStatus?.Trim();
                         DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseAndConvertDateTime(ColumnNames.ProcessedDate);
@@ -188,15 +185,6 @@ namespace CardServicesProcessor.Services
                             approvedStatus = Statuses.Approved;
                         }
 
-                        if (caseTicketNbr.IsTruthy() && caseTicketNbr.ContainsAny(
-                            "EHCM202400065507-1", "EHCM202400063562-1", "NBCM202400069903-1", // missing processed date and/or denial reason
-                            "NBCM202400075178-1", "NBCM202400075627-1", "NBCM202400079733-1", // missing approved amount
-                            "NBCM202400069903-1", "NBCM202400079345-1") // missing denial reason
-                            ) 
-                        {
-
-                        }
-
                         // for cases older than 14 days, close them out if they are in review, declined, or due to IT issues
                         if (caseStatus != Statuses.Closed && createDate < DateTime.Now.AddDays(-14))
                         {
@@ -211,8 +199,7 @@ namespace CardServicesProcessor.Services
                         // denial reason
                         if (caseTopic == "Reimbursement")
                         {
-                            if (approvedStatus == Statuses.Declined) denialReason = denialReason.IsTruthy() ? denialReason : DenialReasons.BenefitUtilized;
-                            else denialReason = null;
+                            denialReason = approvedStatus == Statuses.Declined ? denialReason.IsTruthy() ? denialReason : DenialReasons.BenefitUtilized : null;
                         }
 
                         // processed date
@@ -220,7 +207,7 @@ namespace CardServicesProcessor.Services
                         {
                             processedDate = createDate.Value.AddDays(14);
                         }
-                        
+
                         // #2: update ApprovedAmount to value if Approved and amount is 0
                         if (caseTopic == "Reimbursement"
                             && caseTicketData.IsTruthy()
@@ -284,7 +271,7 @@ namespace CardServicesProcessor.Services
                         dataRow.FormatForExcel(ColumnNames.ProcessedDate, processedDate?.ToShortDateString());
                         dataRow.FormatForExcel(ColumnNames.ClosingComments, closingComments);
 
-                        dataRow.FillOutlierData(caseTicketNbr, totalRequestedAmount);
+                        dataRow.FillOutlierData(caseTicketNbr);
 
                         dt.Rows.Add(dataRow);
                     }
@@ -394,14 +381,9 @@ namespace CardServicesProcessor.Services
                     // Handle empty "Case Closed Date" cell or missing "Case Closed Date" column altogether
                     if (benefitWalletFromManualReport.ContainsNumbersOnly())
                     {
-                        if (matchingRows[0].Table.Columns.Contains(ColumnNames.CaseClosedDate))
-                        {
-                            benefitWalletFromManualReport = matchingRows[0][ColumnNames.CaseClosedDate]?.ToString()?.Trim();
-                        }
-                        else
-                        {
-                            benefitWalletFromManualReport = matchingRows[0][ColumnNames.AmountRequested]?.ToString()?.Trim();
-                        }
+                        benefitWalletFromManualReport = matchingRows[0].Table.Columns.Contains(ColumnNames.CaseClosedDate)
+                            ? (matchingRows[0][ColumnNames.CaseClosedDate]?.ToString()?.Trim())
+                            : (matchingRows[0][ColumnNames.AmountRequested]?.ToString()?.Trim());
                     }
 
                     benefitWalletFromManualReport = benefitWalletFromManualReport.StripNumbers();
