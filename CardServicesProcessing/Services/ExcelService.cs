@@ -243,19 +243,19 @@ namespace CardServicesProcessor.Services
         /// <param name="sheetPos"></param>
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)
         {
-            XLWorkbook workbook = CreateWorkbook(filePath);
-
             // Check if the worksheet exists
             DeleteWorkbook(filePath);
 
+            XLWorkbook workbook = CreateWorkbook(filePath);
+
             // Add a new worksheet with the same name
-            IXLWorksheet worksheet = workbook.Worksheets.Add(sheetName, sheetPos).SetTabColor(XLColor.Yellow);
+            IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
             // Remove empty columns after the specified index
             RemoveEmptyColumns(dataTable, ColumnNames.ClosingComments);
 
             // Insert DataTable into the worksheet
-            worksheet.Cell(1, 1).InsertTable(dataTable, false);
+            _ = worksheet.Cell(1, 1).InsertTable(dataTable, false);
 
             // Format header row
             FormatHeaderRow(worksheet.Row(1));
@@ -313,18 +313,7 @@ namespace CardServicesProcessor.Services
             bool isNumeric = column.Cells().All(cell => cell.DataType == XLDataType.Number);
             bool isDate = column.Cells().All(cell => cell.DataType == XLDataType.DateTime);
 
-            if (isNumeric)
-            {
-                return XLDataType.Number;
-            }
-            else if (isDate)
-            {
-                return XLDataType.DateTime;
-            }
-            else
-            {
-                return XLDataType.Text;
-            }
+            return isNumeric ? XLDataType.Number : isDate ? XLDataType.DateTime : XLDataType.Text;
         }
 
         private static string GetFormatForDataType(XLDataType dataType)
@@ -346,9 +335,9 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria, XLFilterType filterType = XLFilterType.Regular)
+        private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria)
         {
-            worksheet.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
+            _ = worksheet.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)
@@ -468,14 +457,7 @@ namespace CardServicesProcessor.Services
         private static void AddDataToWorksheet<T>(T dt, XLWorkbook workbook, string sheetName) where T : DataTable
         {
             DataTable dtPrev = ReadWorksheetToDataTable(CheckIssuanceConstants.FilePathPrev, sheetName);
-
-            // Get the worksheet by name
-            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
-
-            if (!worksheetExists)
-            {
-                worksheet = workbook.AddWorksheet(sheetName);
-            }
+            IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName);
 
             // Find the first empty row in the worksheet
             _ = worksheet.LastRowUsed()?.RowNumber() + 1 ?? 1;
@@ -494,6 +476,19 @@ namespace CardServicesProcessor.Services
             {
                 _ = worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
             }*/
+        }
+
+        public static IXLWorksheet CreateWorksheet(XLWorkbook workbook, string sheetName, int sheetPos = 1)
+        {
+            // Get the worksheet by name
+            bool worksheetExists = workbook.Worksheets.TryGetWorksheet(sheetName, out IXLWorksheet worksheet);
+
+            if (!worksheetExists)
+            {
+                worksheet = workbook.AddWorksheet(sheetName, sheetPos);
+            }
+
+            return worksheet;
         }
 
         public static void InsertIntoExcelWithComparison(DataTable sourceDataTable, IXLWorksheet worksheet, DataTable comparisonDataTable)

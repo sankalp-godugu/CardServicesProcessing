@@ -309,7 +309,7 @@ namespace CardServicesProcessor.Services
             // Load the Excel file
             using (XLWorkbook workbook = new(filePath))
             {
-                IXLWorksheet combinedWorksheet = workbook.Worksheets.Add("2023 reimbursements - All");
+                IXLWorksheet combinedWorksheet = ExcelService.CreateWorksheet(workbook, "2023 reimbursements - All");
 
                 foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023 Reimbursements", "2023 Reimbursements-completed")))
                 {

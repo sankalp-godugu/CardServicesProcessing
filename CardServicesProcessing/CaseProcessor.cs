@@ -38,24 +38,23 @@ namespace CardServicesProcessor
                             SheetDraft = CardServicesConstants.Nations.SheetDraft,
                             SheetFinal = CardServicesConstants.Nations.SheetFinal,
                             SheetDraftIndex = CardServicesConstants.Nations.SheetFinalIndex
-                        },
-                        
+                        }
                     ];
 
                     await ProcessReports(config, dataLayer, log, reportSettings);
 
-                    log.LogInformation("Opening the Excel file at {FilePathCurr}...", CardServicesConstants.FilePathCurr);
+                    log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
-                    ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                    log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
             }
             catch (Exception ex)
             {
-                log?.LogError($"Failed with an exception with message: {ex.Message}");
+                log?.LogInformation($"Failed with an exception with message: {ex.Message}");
                 return new BadRequestObjectResult(ex.Message);
             }
         }
@@ -68,7 +67,7 @@ namespace CardServicesProcessor
 
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("{SheetName} > Querying for cases...", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Querying for cases...");
                 sw.Start();
                 // Check if data exists in cache
                 if (!CacheManager.Cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
@@ -78,43 +77,43 @@ namespace CardServicesProcessor
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation("{SheetName} > Processing missing/invalid data...", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Processing missing/invalid data...");
                 sw.Restart();
                 DataTable tblCurr = DataProcessingService.ValidateCases(response);
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 /*log.LogInformation("Reading data from last report sent to Elevance...");
                 sw.Restart();
                 DataTable? tblPrev = DataManipulationService.ReadPrevYTDExcelToDataTable(CardServicesConstants.FilePathPrev, settings.SheetPrev);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 log.LogInformation("Populating missing data from previous 2024 report...");
                 sw.Restart();
                 DataManipulationService.FillMissingDataFromPrevReport(tblCurr, tblPrev);
                 sw.Stop();
-                log.LogInformation($"Elapsed time in seconds: {sw.Elapsed.TotalSeconds}");*/
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");*/
 
-                log.LogInformation("{SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
                 sw.Restart();
                 DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation("{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
                 sw.Restart();
                 //DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2024SrcFilePath, tblCurr);
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation("{SheetName} > Writing to Excel and applying filters...", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
                 ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetDraftIndex);
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
         }
 

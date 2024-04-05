@@ -44,7 +44,7 @@ namespace CardServicesProcessor.DataAccess.Services
                 }
                 catch (Exception ex)
                 {
-                    log.LogError($"{procedureName} failed with exception: {ex.Message}");
+                    log.LogInformation($"{procedureName} failed with exception: {ex.Message}");
                 }
             }
 
@@ -61,34 +61,34 @@ namespace CardServicesProcessor.DataAccess.Services
 
             try
             {
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropAllCSCases, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoAllCSCases, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblMemberInsuranceMax, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoMemberInsuranceMax, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblReimbursementAmount, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoTblReimbursementAmount, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropAllCSCases, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoAllCSCases, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblMemberInsuranceMax, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoMemberInsuranceMax, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblReimbursementAmount, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoTblReimbursementAmount, transaction, log);
 
-                IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, SQLConstantsCardServices.SelectCases, "ElapsedTime", transaction, log);
+                IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, SQLConstantsCardServices.SelectCases, transaction, log);
                 return result;
             }
             catch (SqlException ex)
             {
-                log.LogError(ex, $"SqlException occurred:\n" +
-                $"Message: {ex.Message}\n" +
-                $"Procedure: {ex.Procedure}\n" +
-                $"Line Number: {ex.LineNumber}\n" +
-                $"Server: {ex.Server}\n" +
-                $"Class: {ex.Class}\n" +
-                $"Number: {ex.Number}\n" +
-                $"State: {ex.State}\n" +
-                $"Source: {ex.Source}\n" +
-                $"StackTrace: {ex.StackTrace}");
+                log.LogInformation($"SqlException occurred: " +
+                $"\nMessage: {ex.Message}\n" +
+                $"\nProcedure: {ex.Procedure}\n" +
+                $"\nLine Number: {ex.LineNumber}\n" +
+                $"\nServer: {ex.Server}\n" +
+                $"\nClass: {ex.Class}\n" +
+                $"\nNumber: {ex.Number}\n" +
+                $"\nState: {ex.State}\n" +
+                $"\nSource: {ex.Source}\n" +
+                $"\nStackTrace: {ex.StackTrace}");
                 throw;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                log.LogError($"Exception occurred: {ex.Message}");
+                log.LogInformation($"Exception occurred: {ex.Message}");
                 throw;
             }
         }
@@ -102,22 +102,22 @@ namespace CardServicesProcessor.DataAccess.Services
 
             try
             {
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementPayments, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress1, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress2, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress3, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropTempFinal, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementFinal, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, connection.Database == Databases.Nations ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoTempFinal, "ElapsedTime", transaction, log);
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, "ElapsedTime", transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementPayments, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress1, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropTempFinal, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementFinal, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, connection.Database == Databases.Nations ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoTempFinal, transaction, log);
+                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, transaction, log);
 
-                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, "ElapsedTime", transaction, log);
-                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectMemberMailingInfo, "ElapsedTime", transaction, log);
-                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, "ElapsedTime", transaction, log);
+                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, transaction, log);
+                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectMemberMailingInfo, transaction, log);
+                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectMemberCheckReimbursement, transaction, log);
 
                 return new CheckIssuance
                 {
@@ -128,22 +128,22 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (SqlException ex)
             {
-                log.LogError(ex, $"SqlException occurred:\n" +
-                $"Message: {ex.Message}\n" +
-                $"Procedure: {ex.Procedure}\n" +
-                $"Line Number: {ex.LineNumber}\n" +
-                $"Server: {ex.Server}\n" +
-                $"Class: {ex.Class}\n" +
-                $"Number: {ex.Number}\n" +
-                $"State: {ex.State}\n" +
-                $"Source: {ex.Source}\n" +
-                $"StackTrace: {ex.StackTrace}");
+                log.LogInformation($"SqlException occurred: " +
+                $"\nMessage: {ex.Message}\n" +
+                $"\nProcedure: {ex.Procedure}\n" +
+                $"\nLine Number: {ex.LineNumber}\n" +
+                $"\nServer: {ex.Server}\n" +
+                $"\nClass: {ex.Class}\n" +
+                $"\nNumber: {ex.Number}\n" +
+                $"\nState: {ex.State}\n" +
+                $"\nSource: {ex.Source}\n" +
+                $"\nStackTrace: {ex.StackTrace}");
                 throw;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                log.LogError($"Exception occurred: {ex.Message}");
+                log.LogInformation($"Exception occurred: {ex.Message}");
                 throw;
             }
         }
@@ -157,7 +157,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (Exception ex)
             {
-                log.LogError($"TimeOut with Exception: {ex.Message}");
+                log.LogInformation($"TimeOut with Exception: {ex.Message}");
                 return -1;
             }
         }
@@ -167,18 +167,18 @@ namespace CardServicesProcessor.DataAccess.Services
             return parameters.Select(sp => new SqlParameter(sp.Key, sp.Value)).ToList();
         }
 
-        public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
+        public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log)
         {
             Stopwatch sw = Stopwatch.StartNew();
             _ = await connection.ExecuteAsync(sqlCommand, transaction: transaction);
-            ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
+            log.LogInformation($"{nameof(sqlCommand)} > {sw.Elapsed.TotalSeconds} sec");
         }
 
-        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, string metricName, IDbTransaction transaction, ILogger log)
+        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log)
         {
             Stopwatch sw = Stopwatch.StartNew();
             IEnumerable<T> result = await connection.QueryAsync<T>(sqlCommand, transaction: transaction);
-            ILoggerExtensions.LogMetric(log, metricName, sw.Elapsed.TotalSeconds, null);
+            log.LogInformation($"{nameof(sqlCommand)} > {sw.Elapsed.TotalSeconds} sec");
             return result;
         }
 
@@ -208,7 +208,7 @@ namespace CardServicesProcessor.DataAccess.Services
             }
             catch (Exception ex)
             {
-                log.LogError($"Error occured while parsing the List to table with Exception: {ex.Message}");
+                log.LogInformation($"Error occured while parsing the List to table with Exception: {ex.Message}");
                 return list;
             }
         }

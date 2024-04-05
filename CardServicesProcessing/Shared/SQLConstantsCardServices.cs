@@ -110,5 +110,16 @@
 		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allcs.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = 1
 		LEFT JOIN	#ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID
 		ORDER BY allcs.CreateDate";
+
+        public static readonly List<Tuple<string, string>> QueryToNameMap =
+        [
+            new (DropAllCSCases, nameof(DropAllCSCases)),
+            new (DropTblMemberInsuranceMax, nameof(DropTblMemberInsuranceMax)),
+            new (DropTblReimbursementAmount, nameof(DropTblReimbursementAmount)),
+            new (SelectIntoAllCSCases, nameof(SelectIntoAllCSCases)),
+            new (SelectIntoMemberInsuranceMax, nameof(SelectIntoMemberInsuranceMax)),
+            new (SelectIntoTblReimbursementAmount, nameof(SelectIntoTblReimbursementAmount)),
+            new (SelectCases, nameof(SelectCases))
+        ];
     }
 }

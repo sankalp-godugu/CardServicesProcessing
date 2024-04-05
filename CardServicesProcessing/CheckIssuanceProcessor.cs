@@ -32,18 +32,18 @@ namespace CardServicesProcessor
 
                     await ProcessReports(config, dataLayer, log, reportInfo);
 
-                    log.LogInformation("Opening the Excel file at {FilePathCurr}...", CheckIssuanceConstants.FilePathCurr);
+                    log.LogInformation($"Opening the Excel file at {CheckIssuanceConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
                     ExcelService.OpenExcel(CheckIssuanceConstants.FilePathCurr);
                     sw.Stop();
-                    ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                    log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
             }
             catch (Exception ex)
             {
-                log?.LogError($"Failed with an exception with message: {ex.Message}");
+                log?.LogInformation($"Failed with an exception with message: {ex.Message}");
                 return new BadRequestObjectResult(ex.Message);
             }
         }
@@ -56,10 +56,10 @@ namespace CardServicesProcessor
             {
                 Stopwatch sw = new();
 
-                log.LogInformation("{SheetName} > Processing data", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Processing data");
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation("{SheetName} > Getting all approved reimbursements", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Getting all approved reimbursements");
                 sw.Start();
                 if (!CacheManager.Cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
@@ -67,12 +67,12 @@ namespace CardServicesProcessor
                     _ = CacheManager.Cache.Set($"{settings.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation("{SheetName} > Adding data to Excel", settings.SheetName);
+                log.LogInformation($"{settings.SheetName} > Adding data to Excel");
                 sw.Start();
                 ExcelService.AddToExcel<CheckIssuance>(dataCurr);
-                ILoggerExtensions.LogMetric(log, "ElapsedTime", sw.Elapsed.TotalSeconds, null);
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
         }
 
