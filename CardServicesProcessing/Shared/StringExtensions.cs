@@ -17,6 +17,17 @@ namespace CardServicesProcessor.Utilities.Constants
             return values.Any(value => source.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
 
+        public static bool ContainsAnyFullWord(this string source, params string[] values)
+        {
+            // Split the source string into words
+            string[] sourceWords = source.Split(new char[] { ' ', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Check if any of the words in source match any of the values
+            return sourceWords.Any(sourceWord =>
+                values.Any(value =>
+                    string.Equals(sourceWord, value, StringComparison.OrdinalIgnoreCase)));
+        }
+
         public static DateTime? ParseAndConvertDateTime(this string? utcDateTimeString, string columnName)
         {
             if (DateTime.TryParse(utcDateTimeString, out DateTime utcDateTime))

@@ -186,7 +186,7 @@ namespace CardServicesProcessor.Services
                         }
 
                         // for cases older than 14 days, close them out if they are in review, declined, or due to IT issues
-                        if (caseStatus != Statuses.Closed && createDate < DateTime.Now.AddDays(-14))
+                        if (caseStatus == Statuses.InReview && createDate < DateTime.Now.AddDays(-14))
                         {
                             caseStatus = Statuses.Closed;
                             approvedStatus = Statuses.Declined;
@@ -542,6 +542,106 @@ namespace CardServicesProcessor.Services
                         }
                     }
                 }
+            }
+        }
+
+        public static void FillInMissingWallets(DataTable dataTable, IEnumerable<ReimbursementItem> reimbursementItems)
+        {
+            try
+            {
+                // Preload text file contents
+                var filePaths = new Dictionary<string, string>
+            {
+                { "AAF", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\AAF.txt" },
+                { "ServiceDog", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\ServiceDog.txt" },
+                { "EAD", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\EAD.txt" },
+                { "OTC", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\OTC.txt" },
+                { "DVH", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\DVH.txt" },
+                { "Utilities", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\Utilities.txt" },
+                { "HG", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\HG.txt" },
+                { "Foods", @"C:\Users\Sankalp.Godugu\source\repos\CardServicesProcessing\CardServicesProcessing\Shared\Lists\Foods.txt" },
+                // Add other wallet types and their file paths here
+            };
+
+                var walletContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (wallet, filePath) in filePaths)
+                {
+                    var lines = File.ReadLines(filePath).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line.Trim());
+                    walletContents[wallet] = new HashSet<string>(lines);
+                }
+
+                Parallel.ForEach(dataTable.Rows.Cast<DataRow>(), dataRow =>
+                {
+                    if (dataRow[ColumnNames.CaseTopic] != "Reimbursement") { return; }
+
+                    string? caseTicketNumber = (string?)dataRow[ColumnNames.CaseTicketNumber] ?? "";
+                    var reimbursementItemsResult = reimbursementItems.Where(ri => ri.CaseTicketNumber == caseTicketNumber).ToList();
+
+                    if (caseTicketNumber == null || reimbursementItemsResult.Count == 0)
+                    {
+                        return;
+                    }
+
+                    string? wallet = (string?)dataRow[ColumnNames.Wallet];
+                    if (!wallet.IsTruthy())
+                    {
+                        var products = reimbursementItemsResult.Select(ri => ri.ProductName).ToList();
+                        if (products.Count == 0) return;
+
+                        // Search for wallet types in consolidated text file
+                        string? matchedWallet = null;
+                        foreach (var (walletType, contents) in walletContents)
+                        {
+                            if (contents.Overlaps(products))
+                            {
+                                matchedWallet = walletType;
+                                break;
+                            }
+                        }
+
+                        if (matchedWallet != null)
+                        {
+                            dataRow.FormatForExcel(ColumnNames.Wallet, matchedWallet);
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        static bool IsValueInTextFile(string filePath, IEnumerable<string?> searchValues)
+        {
+            try
+            {
+                if (searchValues is null || !searchValues.Any())
+                {
+                    return false;
+                }
+
+                // Read all lines from the text file once and store in memory
+                HashSet<string> fileContents = new(File.ReadAllLines(filePath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Select(line => line.Trim()), StringComparer.OrdinalIgnoreCase);
+
+                // Parallelize the search process
+                foreach (string searchValue in searchValues)
+                {
+                    if (fileContents.Any(line => line.IndexOf(searchValue.Trim(), StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        // Value found, terminate the loop
+                        return true;
+                    }
+                }
+
+                return false; // Value not found
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading the text file: " + ex.Message);
+                return false; // Error occurred
             }
         }
     }

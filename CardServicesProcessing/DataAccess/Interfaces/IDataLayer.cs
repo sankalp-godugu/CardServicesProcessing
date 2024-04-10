@@ -7,6 +7,7 @@ namespace CardServicesProcessor.DataAccess.Interfaces
     public interface IDataLayer
     {
         public Task<List<T>> ExecuteReader<T>(string procedureName, Dictionary<string, object> parameters, string connectionString, ILogger log);
+        public Task<IEnumerable<T>> QueryAsync<T>(string connectionString, string query, ILogger log, object? parameters = null);
         public Task<IEnumerable<T>> QueryAsyncCustom<T>(string connectionString, ILogger log, object? parameters = null);
         public Task<CheckIssuance> QueryMultipleAsyncCustom<T>(string connectionString, ILogger log);
     }

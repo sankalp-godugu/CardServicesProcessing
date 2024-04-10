@@ -52,6 +52,17 @@ namespace CardServicesProcessor.DataAccess.Services
             return list;
         }
 
+        public async Task<IEnumerable<T>> QueryAsync<T>(string connectionString, string query, ILogger log, object? parameters = null)
+        {
+            using SqlConnection connection = new(connectionString);
+            await connection.OpenAsync();
+
+            // Execute the query asynchronously
+            var result = await connection.QueryAsync<T>(query);
+
+            return result;
+        }
+
         public async Task<IEnumerable<T>> QueryAsyncCustom<T>(string connectionString, ILogger log, object? parameters = null)
         {
             using SqlConnection connection = new(connectionString);

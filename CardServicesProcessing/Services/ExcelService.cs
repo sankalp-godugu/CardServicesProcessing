@@ -141,25 +141,27 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     dataRow.FormatForExcel(ColumnNames.DenialReason, DenialReasons.NotReimbursement);
                     break;
-                case "EHCM202400063018-1":
-                case "EHCM202400065349-1":
-                case "EHCM202400063182-1":
-                case "EHCM202400070873-1":
-                case "EHCM202400070955-1":
-                case "EHCM202400070803-1":
-                case "EHCM202400070761-1":
-                case "EHCM202400070772-1":
-                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
-                    break;
                 case "EHCM202400067263-1":
                 case "EHCM202400066272-1":
+                case "EHCM202400070544-1":
+                case "EHCM202400070545-1":
+                case "EHCM202400070613-1":
+                case "EHCM202400070694-1":
+                case "EHCM202400071890-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ActiveFitness);
                     break;
                 case "EHCM202400068961-1":
                 case "EHCM202400070137-1":
+                case "EHCM202400071027-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.AssistiveDevices);
                     break;
                 case "EHCM202400070711-1":
+                case "EHCM202400070122-1":
+                case "EHCM202400070161-1":
+                case "EHCM202400070524-1":
+                case "EHCM202400070598-1":
+                case "EHCM202400070692-1":
+                case "EHCM202400070894-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.DVH);
                     break;
                 case "EHCM202400069504-1":
@@ -172,6 +174,15 @@ namespace CardServicesProcessor.Services
                 case "EHCM202400070892-1":
                 case "EHCM202400070908-1":
                 case "EHCM202400071226-1":
+                case "EHCM202400069909-1":
+                case "EHCM202400070041-1":
+                case "EHCM202400070405-1":
+                case "EHCM202400070574-1":
+                case "EHCM202400071040-1":
+                case "EHCM202400071041-1":
+                case "EHCM202400069932-1":
+                case "EHCM202400070026-1":
+                
                 case "NBCM202400082278-1":
                 case "NBCM202400082281-1":
                 case "NBCM202400082283-1":
@@ -198,15 +209,43 @@ namespace CardServicesProcessor.Services
                 case "EHCM202400070736-1":
                 case "EHCM202400070754-1":
                 case "EHCM202400070715-1":
+                case "EHCM202400070500-1":
+                case "EHCM202400070424-1":
+                case "EHCM202400070067-1":
+                case "EHCM202400070163-1":
                 case "NBCM202400087650-1":
+                case "EHCM202400069933-1":
+                case "EHCM202400069964-1":
+                case "EHCM202400070003-1":
+                case "EHCM202400070055-1":
+                case "EHCM202400070302-1":
+                case "EHCM202400070339-1":
+                case "EHCM202400070384-1":
+                case "EHCM202400070961-1":
+                case "EHCM202400071063-1":
+                case "EHCM202400071439-1":
+                case "EHCM202400070716-1":
+                case "EHCM202400070509-1":
+                case "EHCM202400070569-1":
+                case "EHCM202400070375-1":
+                case "EHCM202400069983-1":
+                case "EHCM202400070043-1":
+                case "EHCM202400070166-1":
+                case "EHCM202400070167-1":
+                case "EHCM202400070394-1":
+                case "EHCM202400070451-1":
+                case "EHCM202400070916-1":
+                case "EHCM202400069910-1":
+                case "EHCM202400070993-1":
+                case "EHCM202400069977-1":
+                case "EHCM202400070215-1":
+                case "EHCM202400070267-1":
+                case "EHCM202400070416-1":
+                case "EHCM202400070562-1":
+                case "EHCM202400071656-1":
+                case "EHCM202400071657-1":
+                case "EHCM202400071658-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.OTC);
-                    break;
-                case "EHCM202400071155-1":
-                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ServiceDog);
-                    break;
-                case "EHCM202400070738-1":
-                case "EHCM202400070768-1":
-                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
                     break;
                 case "NBCM202400076542-1":
                 case "NBCM202400081906-1":
@@ -215,6 +254,49 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400083283-1":
                 case "NBCM202400083445-1":
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Rewards);
+                    break;
+                case "EHCM202400071155-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.ServiceDog);
+                    break;
+                case "EHCM202400063018-1":
+                case "EHCM202400065349-1":
+                case "EHCM202400063182-1":
+                case "EHCM202400070873-1":
+                case "EHCM202400070955-1":
+                case "EHCM202400070803-1":
+                case "EHCM202400070761-1":
+                case "EHCM202400070772-1":
+                case "EHCM202400069987-1":
+                case "EHCM202400070024-1":
+                case "EHCM202400070304-1":
+                case "EHCM202400070305-1":
+                case "EHCM202400070399-1":
+                case "EHCM202400070400-1":
+                case "EHCM202400070472-1":
+                case "EHCM202400070587-1":
+                case "EHCM202400070688-1":
+                case "EHCM202400070968-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Utilities);
+                    break;
+                case "EHCM202400070738-1":
+                case "EHCM202400070768-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.Unknown);
+                    break;
+                case "EHCM202400069986-1":
+                case "EHCM202400070049-1":
+                case "EHCM202400070076-1":
+                case "EHCM202400070136-1":
+                case "EHCM202400070170-1":
+                case "EHCM202400070323-1":
+                case "EHCM202400070368-1":
+                case "EHCM202400070475-1":
+                case "EHCM202400070588-1":
+                case "EHCM202400069976-1":
+                case "EHCM202400070440-1":
+                case "EHCM202400069937-1":
+                case "EHCM202400070387-1":
+                case "EHCM202400070389-1":
+                    dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.NA);
                     break;
                 case "NBCM202400083351-1":
                 case "NBCM202400083346-1":
@@ -244,11 +326,12 @@ namespace CardServicesProcessor.Services
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)
         {
             // Check if the worksheet exists
-            DeleteWorkbook(filePath);
+            //DeleteWorkbook(filePath);
 
             XLWorkbook workbook = CreateWorkbook(filePath);
 
             // Add a new worksheet with the same name
+            //IXLWorksheet worksheet = ClearWorksheet(sheetName, sheetPos, workbook);
             IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
             // Remove empty columns after the specified index
@@ -271,10 +354,41 @@ namespace CardServicesProcessor.Services
 
             // Apply filters to specific columns
             ApplyFilters(worksheet, 14, "Reimbursement");
-            ApplyFilters(worksheet, 5, "2024");
+            //ApplyFilters(worksheet, 5, "2024");
 
+            SaveWorkbook(filePath, workbook);
+        }
+
+        private static IXLWorksheet ClearWorksheet(string sheetName, int sheetPos, XLWorkbook workbook)
+        {
+            // Get the worksheet or add a new one if it doesn't exist
+            IXLWorksheet? worksheet = workbook.Worksheets.FirstOrDefault(w => w.Name == sheetName);
+            if (worksheet == null)
+            {
+                worksheet = workbook.Worksheets.Add(sheetName, sheetPos);
+            }
+            else
+            {
+                // Clear existing data if the worksheet already exists
+                worksheet.Clear();
+            }
+
+            return worksheet;
+        }
+
+        private static void SaveWorkbook(string filePath, XLWorkbook workbook)
+        {
             // Save the workbook
-            workbook.SaveAs(filePath);
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                // If the workbook has a file path, it means it has been previously saved
+                workbook.Save(); // Use Save() to save the workbook using its existing file name or location
+            }
+            else
+            {
+                // If the workbook has not been previously saved, use SaveAs()
+                workbook.SaveAs(filePath); // Provide the desired file path
+            }
         }
 
         private static void RemoveEmptyColumns(DataTable dataTable, string columnName)
@@ -542,6 +656,36 @@ namespace CardServicesProcessor.Services
                     }
                 }
             }
+        }
+
+        public static void WriteToExcel(DataTable dt, string filePath)
+        {
+            // Create a new Excel workbook
+            using (var wb = new XLWorkbook())
+            {
+                // Add a worksheet to the workbook
+                var ws = wb.Worksheets.Add("Sheet1");
+
+                // Write DataTable headers to the first row of the worksheet
+                for (int i = 0; i < dt.Columns.Count; i++)
+                {
+                    ws.Cell(1, i + 1).Value = dt.Columns[i].ColumnName;
+                }
+
+                // Write DataTable data to the worksheet
+                for (int i = 0; i < dt.Rows.Count; i++)
+                {
+                    for (int j = 0; j < dt.Columns.Count; j++)
+                    {
+                        ws.Cell(i + 2, j + 1).Value = dt.Rows[i][j].ToString();
+                    }
+                }
+
+                // Save the workbook
+                wb.SaveAs(filePath);
+            }
+
+            Console.WriteLine("Excel file with DataTable has been created.");
         }
     }
 }

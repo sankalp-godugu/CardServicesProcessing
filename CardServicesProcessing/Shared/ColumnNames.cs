@@ -38,6 +38,8 @@
         public const string AmountRequested = "Amount Requested";
         public const string CaseClosedDate = "Case Closed Date";
 
+        public const string ReimbursementItem = "ReimbursementItem";
+
         public static readonly string[] ColumnOrder = ["Insurance Carrier", "Health Plan", "Caseticketnumber", "CaseCategory", "CreateDate", "TransactionDate", "MemberFirstName", "MemberLastName", "DateOfBirth", "City", "State", "Nhmemberid", "InsuranceNumber", "Casetopic", "Casetype", "Caseticketdata", "Wallet", "DenialReason", "RequestedTotalReimbursementAmount", "ApprovedRequestedTotalReimbursementAmount", "CaseStatus", "ApprovedStatus", "ProcessedDate", "ClosingComments"];
         public static readonly string[] HeaderNames = ["Insurance Carrier", "Health Plan", "Case Ticket Number", "Case Category", "Created Date", "Transaction Date", "Member First Name", "Member Last Name", "Date Of Birth", "City", "State", "EH/NH Member Id", "Insurance Number", "Case Topic", "Case Type", "Case Ticket Data", "Wallet", "Denial Reason", "Requested Total Reimbursement Amount", "Approved Total Reimbursement Amount", "Case Status", "Approved Status", "Processed Date", "Closing Comments"];
 

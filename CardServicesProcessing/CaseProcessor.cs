@@ -28,7 +28,7 @@ namespace CardServicesProcessor
                             SheetRaw = CardServicesConstants.Elevance.SheetRaw,
                             SheetDraft = CardServicesConstants.Elevance.SheetDraft,
                             SheetFinal = CardServicesConstants.Elevance.SheetFinal,
-                            SheetDraftIndex = CardServicesConstants.Elevance.SheetFinalIndex
+                            SheetIndex = CardServicesConstants.Elevance.SheetFinalIndex
                         },
                         new()
                         {
@@ -37,15 +37,15 @@ namespace CardServicesProcessor
                             SheetRaw = CardServicesConstants.Nations.SheetRaw,
                             SheetDraft = CardServicesConstants.Nations.SheetDraft,
                             SheetFinal = CardServicesConstants.Nations.SheetFinal,
-                            SheetDraftIndex = CardServicesConstants.Nations.SheetFinalIndex
+                            SheetIndex = CardServicesConstants.Nations.SheetFinalIndex
                         }
                     ];
 
                     await ProcessReports(config, dataLayer, log, reportSettings);
 
-                    log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
+                    //log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
-                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
+                    //ExcelService.OpenExcel(CardServicesConstants.FilePathCurr);
                     sw.Stop();
                     log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
                 });
@@ -109,9 +109,28 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
+                log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
+                sw.Restart();
+                var reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
+                sw.Stop();
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
+                log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
+                sw.Restart();
+                DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
+                sw.Stop();
+                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
                 log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
-                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetDraftIndex);
+                if (settings.SheetName == "Elevance")
+                {
+                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurrElv, settings.SheetFinal, settings.SheetIndex);
+                }
+                else
+                {
+                    ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurrNb, settings.SheetFinal, settings.SheetIndex);
+                }
                 sw.Stop();
                 log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
@@ -131,7 +150,7 @@ namespace CardServicesProcessor
             public required string SheetRaw { get; set; }
             public required string SheetDraft { get; set; }
             public required string SheetFinal { get; set; }
-            public int SheetDraftIndex { get; set; }
+            public int SheetIndex { get; set; }
         }
     }
 }

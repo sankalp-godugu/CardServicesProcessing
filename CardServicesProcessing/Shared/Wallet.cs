@@ -1,4 +1,5 @@
 ﻿using CardServicesProcessor.Utilities.Constants;
+using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
 
 namespace CardServicesProcessor.Shared
 {
@@ -19,7 +20,7 @@ namespace CardServicesProcessor.Shared
         public const string NA = "N/A";
         public const string Unknown = "Unknown";
 
-        public static Dictionary<string, string[]> GetCategoryVariations()
+        public static Dictionary<string, string[]> GetWalletVariations()
         {
             return new Dictionary<string, string[]>
             {
@@ -38,7 +39,7 @@ namespace CardServicesProcessor.Shared
 
         public static string? GetWalletFromCommentsOrWalletCol(this string? wallet, string? closingComments)
         {
-            foreach (KeyValuePair<string, string[]> kvp in GetCategoryVariations()
+            foreach (KeyValuePair<string, string[]> kvp in GetWalletVariations()
                     .Where(kvp => (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
                                 || (wallet.IsTruthy() && wallet.ContainsAny(kvp.Value))))
             {
