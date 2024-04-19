@@ -27,7 +27,6 @@
             "case denied",
             "Case closed due to being a storefront order reshipment request"
         ];
-
         public static readonly string[] AssistiveDevicesVariations = ["assistive devices"];
         public static readonly string[] ActiveFitnessVariations = ["fitness", "AAF"];
         public static readonly string[] DvhVariations = ["dvh", "dhv", "vdh", "vhd", "hvd", "hdv", "dental", "vision", "hearing", "ZVD2300"];
@@ -73,7 +72,6 @@
             "Reshipment In Transit",
             "Reshipment requested",
             "Reship requested",
-
             "Refund was approved",
             "Refund processed",
             "Refund submitted",
@@ -90,119 +88,5 @@
             "MCO handles refund/reship",
         ];
         public static readonly string[] OtherBenefitTypes = ["y", "yes", "n", "no", "denied", "ptc", "none"];
-
-
-        public static readonly string[] ActiveFitnessItemVariations = [];
-        public static readonly string[] AssistiveDevicesItemVariaitons = [];
-        public static readonly string[] DvhItemVariations = [];
-        public static readonly string[] OtcItemVariations = [];
-        public static readonly string[] PersItemVariations = [];
-        public static readonly string[] RewardsItemVariations = [];
-        public static readonly string[] ServiceItemVariations = [];
-        public static readonly string[] UtilityItemVariations = [];
-        public static readonly string[] NaItemVariations = [];
-        public static readonly string[] HealthyFoodItemVariations = [
-            "Apple",
-            "Banana",
-            "Orange",
-            "Grape",
-            "Strawberry",
-            "Blueberry",
-            "Raspberry",
-            "Kiwi",
-            "Mango",
-            "Pineapple",
-            "Watermelon",
-            "Pear",
-            "Peach",
-            "Plum",
-            "Cherry",
-            "Lemon",
-            "Lime",
-            "Avocado",
-            "Coconut",
-            "Papaya",
-            "Carrot",
-            "Broccoli",
-            "Lettuce",
-            "Cabbage",
-            "Spinach",
-            "Kale",
-            "Celery",
-            "Cucumber",
-            "Zucchini",
-            "Bell Pepper",
-            "Potato",
-            "Sweet Potato",
-            "Tomato",
-            "Onion",
-            "Garlic",
-            "Ginger",
-            "Chili Pepper",
-            "Mushroom",
-            "Eggplant",
-            "Corn",
-            "Peas",
-            "Green Beans",
-            "Asparagus",
-            "Cauliflower",
-            "Radish",
-            "Beetroot",
-            "Turnip",
-            "Squash",
-            "Pumpkin",
-            "Bread",
-            "Bagel",
-            "Croissant",
-            "Muffin",
-            "Pancake",
-            "Waffle",
-            "Toast",
-            "Sandwich",
-            "Burger",
-            "Hot Dog",
-            "Pizza",
-            "Pasta",
-            "Spaghetti",
-            "Lasagna",
-            "Noodle",
-            "Rice",
-            "Sushi",
-            "Burrito",
-            "Taco",
-            "Quesadilla",
-            "Steak",
-            "Chicken",
-            "Beef",
-            "Pork",
-            "Sausage",
-            "Bacon",
-            "Ham",
-            "Fish",
-            "Shrimp",
-            "Lobster",
-            "Crab",
-            "Clam",
-            "Oyster",
-            "Mussel",
-            "Scallop",
-            "Squid",
-            "Octopus",
-            "Anchovy",
-            "Tuna",
-            "Salmon",
-            "Trout",
-            "Haddock",
-            "Cod",
-            "Halibut",
-            "Swordfish",
-            "Mackerel",
-            "Sardine",
-            "Herring",
-            "Catfish",
-            "Tilapia",
-            "Carp",
-            "Bass"
-        ];
     }
 }

@@ -2,9 +2,9 @@
 {
     public static class SQLConstantsCardServices
     {
-        public static readonly string DropAllCSCases = @"DROP TABLE IF EXISTS #AllCSCases";
-        public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS #MemberInsuranceMax";
-        public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS #ReimbursementAmount";
+        public static readonly string DropAllCSCases = @"DROP TABLE IF EXISTS ##AllCSCases";
+        public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS ##MemberInsuranceMax";
+        public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS ##ReimbursementAmount";
         public static readonly string SelectIntoAllCSCases = @"
 			SELECT
 					ic.InsuranceCarrierName,
@@ -36,7 +36,7 @@
 					mct.ClosingComments,
 					mlu.Name AS DenialReason,
 					mct.ClosedDate
-			INTO	#AllCSCases
+			INTO	##AllCSCases
 			FROM	ServiceRequest.MemberCases mc
 			JOIN	ServiceRequest.MemberCaseTickets mct ON mct.CaseID=mc.CaseID
 			JOIN	ServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = 1
@@ -53,16 +53,16 @@
 			AND		LastName NOT LIKE '%test%'
 			AND		mc.IsActive = 1
 			AND		addr.AddressTypeCode = 'PERM'
-			--TEMP
-			--AND		mcto.CaseTopicID = 24
-			--AND		DATEPART(YEAR, mct.CreateDate) = 2024";
+			--TEMP:
+			AND		mcto.CaseTopicID = @caseTopicId
+			AND		YEAR(CONVERT(DATETIME2, mct.ClosedDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = @year";
         public static readonly string SelectIntoMemberInsuranceMax = @"
 			SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,
 						allcs.InsuranceHealthPlanID
-			INTO		#MemberInsuranceMax
+			INTO		##MemberInsuranceMax
 			FROM		master.MemberInsurances mi
-			JOIN		#AllCSCases allcs
+			JOIN		##AllCSCases allcs
 			ON			allcs.memberid = mi.MemberID
 			AND			mi.InsuranceHealthPlanID = allcs.InsuranceHealthPlanID
 			WHERE		mi.IsActive = 1
@@ -73,8 +73,8 @@
 					allcs.CaseTicketID,
 					ri.IsProcessEligible,
 					SUM(ri.ApprovedAmount) AS ApprovedTotalAmount
-			INTO		#ReimbursementAmount
-			FROM		#AllCSCases allcs
+			INTO		##ReimbursementAmount
+			FROM		##AllCSCases allcs
 			JOIN		ServiceRequest.ReimbursementItems ri
 			ON			allcs.CaseTicketID = ri.CaseTicketId
 			GROUP BY	allcs.CaseTicketID, ri.IsProcessEligible
@@ -103,23 +103,22 @@
 				allcs.ApprovedStatus,
 				allcs.ClosedDate AS ProcessedDate,
 				allcs.ClosingComments
-		FROM		#AllCSCases allcs
-		JOIN		#MemberInsuranceMax mix ON mix.MemberID = allcs.MemberID
+		FROM		##AllCSCases allcs
+		JOIN		##MemberInsuranceMax mix ON mix.MemberID = allcs.MemberID
 		JOIN		master.MemberInsurances mi ON allcs.MemberID = mi.MemberID AND mix.CreateDate = mi.CreateDate
 		JOIN		master.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID
 		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allcs.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = 1
-		LEFT JOIN	#ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID
-		ORDER BY allcs.CreateDate";
+		LEFT JOIN	##ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID";
 
         public static readonly List<Tuple<string, string>> QueryToNameMap =
         [
-            new (DropAllCSCases, nameof(DropAllCSCases)),
-            new (DropTblMemberInsuranceMax, nameof(DropTblMemberInsuranceMax)),
-            new (DropTblReimbursementAmount, nameof(DropTblReimbursementAmount)),
-            new (SelectIntoAllCSCases, nameof(SelectIntoAllCSCases)),
-            new (SelectIntoMemberInsuranceMax, nameof(SelectIntoMemberInsuranceMax)),
-            new (SelectIntoTblReimbursementAmount, nameof(SelectIntoTblReimbursementAmount)),
-            new (SelectCases, nameof(SelectCases))
+            new(DropAllCSCases, nameof(DropAllCSCases)),
+            new(DropTblMemberInsuranceMax, nameof(DropTblMemberInsuranceMax)),
+            new(DropTblReimbursementAmount, nameof(DropTblReimbursementAmount)),
+            new(SelectIntoAllCSCases, nameof(SelectIntoAllCSCases)),
+            new(SelectIntoMemberInsuranceMax, nameof(SelectIntoMemberInsuranceMax)),
+            new(SelectIntoTblReimbursementAmount, nameof(SelectIntoTblReimbursementAmount)),
+            new(SelectCases, nameof(SelectCases))
         ];
     }
 }

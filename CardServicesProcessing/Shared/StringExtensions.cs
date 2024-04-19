@@ -17,10 +17,12 @@ namespace CardServicesProcessor.Utilities.Constants
             return values.Any(value => source.Contains(value, StringComparison.OrdinalIgnoreCase));
         }
 
+        private static readonly char[] separators = [' ', '.', ',', ';', ':', '!', '?'];
+
         public static bool ContainsAnyFullWord(this string source, params string[] values)
         {
             // Split the source string into words
-            string[] sourceWords = source.Split(new char[] { ' ', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] sourceWords = source.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 
             // Check if any of the words in source match any of the values
             return sourceWords.Any(sourceWord =>
@@ -56,7 +58,8 @@ namespace CardServicesProcessor.Utilities.Constants
 
         public static bool IsTruthy(this string? value)
         {
-            return !string.IsNullOrWhiteSpace(value) && !value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrWhiteSpace(value)
+                && !value.Equals("NULL", StringComparison.OrdinalIgnoreCase);
         }
 
         public static string? GetDenialReason(this string? value)

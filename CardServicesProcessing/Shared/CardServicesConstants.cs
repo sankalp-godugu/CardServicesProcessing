@@ -2,15 +2,15 @@
 {
     public static class CardServicesConstants
     {
-        public static string FilePathCurrElv => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-dd}\CardServicesReportELV_{DateTime.Today:MMddyyyy}.xlsx";
+        public static readonly string FilePathCurr = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-dd}\CardServicesReport_{DateTime.Today:MMddyyyy}.xlsx";
 
-        public static string FilePathCurrNb => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Today:M-dd}\CardServicesReportNB_{DateTime.Today:MMddyyyy}.xlsx";
-
-        public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\Elevance Reimbursement Data YTD - 03142024.xlsx";
+        public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\YTD\{DateTime.Now.AddDays(7):M-dd}\CardServicesReport_{DateTime.Now.AddDays:MMddyyyy}.xlsx";
 
         public static readonly string ManualReimbursements2023SrcFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Adjustments 2023.xlsx";
 
         public static readonly string ManualReimbursements2024SrcFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Manual Reimbursements.xlsx";
+
+        public static readonly string TestFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\TestPurposesOnly.xlsx";
 
         public static class Elevance
         {

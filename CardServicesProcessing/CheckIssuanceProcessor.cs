@@ -2,6 +2,7 @@
 using CardServicesProcessor.Models.Response;
 using CardServicesProcessor.Services;
 using CardServicesProcessor.Shared;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -34,9 +35,9 @@ namespace CardServicesProcessor
 
                     log.LogInformation($"Opening the Excel file at {CheckIssuanceConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
-                    ExcelService.OpenExcel(CheckIssuanceConstants.FilePathCurr);
+                    ExcelService.OpenExcel(CheckIssuanceConstants.FilePathCurr, log);
                     sw.Stop();
-                    log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                    log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -63,16 +64,19 @@ namespace CardServicesProcessor
                 sw.Start();
                 if (!CacheManager.Cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
-                    dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log);
+                    var parameters = new DynamicParameters();
+                    parameters.Add("@caseTicketStatusId", new int[] { 9,3 });
+                    parameters.Add("@approvedStatus", "Approved");
+                    dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log, parameters);
                     _ = CacheManager.Cache.Set($"{settings.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
-                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 log.LogInformation($"{settings.SheetName} > Adding data to Excel");
                 sw.Start();
                 ExcelService.AddToExcel<CheckIssuance>(dataCurr);
-                log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
         }
 

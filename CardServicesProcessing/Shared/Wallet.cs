@@ -1,5 +1,4 @@
 ﻿using CardServicesProcessor.Utilities.Constants;
-using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
 
 namespace CardServicesProcessor.Shared
 {
@@ -17,7 +16,7 @@ namespace CardServicesProcessor.Shared
         public const string ServiceDog = "Service Dog";
         public const string Transportation = "Transportation";
         public const string Utilities = "Utilities";
-        public const string NA = "N/A";
+        public const string NA = "N/A"; // for reimbursements that are actually reship or refund requests
         public const string Unknown = "Unknown";
 
         public static Dictionary<string, string[]> GetWalletVariations()
@@ -37,16 +36,25 @@ namespace CardServicesProcessor.Shared
             };
         }
 
-        public static string? GetWalletFromCommentsOrWalletCol(this string? wallet, string? closingComments)
+        public static string? GetWalletNameFromComments(string? closingComments)
         {
             foreach (KeyValuePair<string, string[]> kvp in GetWalletVariations()
-                    .Where(kvp => (closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value))
-                                || (wallet.IsTruthy() && wallet.ContainsAny(kvp.Value))))
+                    .Where(kvp => closingComments.IsTruthy() && closingComments.ContainsAny(kvp.Value)))
             {
                 return kvp.Key;
             }
 
-            // If no specific category found, return trimmed input
+            return null;
+        }
+
+        public static string? GetWalletNameFromBenefitDesc(string? wallet)
+        {
+            foreach (KeyValuePair<string, string[]> kvp in GetWalletVariations()
+                    .Where(kvp => wallet.IsTruthy() && wallet.ContainsAny(kvp.Value)))
+            {
+                return kvp.Key;
+            }
+
             return wallet?.Trim();
         }
 
