@@ -29,9 +29,9 @@
 	            FROM ServiceRequest.MemberCaseTickets mct
 	            JOIN ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
 	            JOIN PaymentGateway.BenefitManagement bm WITH(NOLOCK) ON bm.NHMemberID=mc.NHMemberID AND bm.TxnGroupReferenceID = mc.CaseNumber
-	            WHERE CaseTopicID = 24
+	            WHERE CaseTopicID = @caseTopicId
 	            AND CaseTicketStatusID IN (9,3)
-	            AND ApprovedStatus='Approved'
+	            AND ApprovedStatus = @approvedStatus
 	            AND cast(bm.TxnResponseDate as date) > DATEADD(day, -7, CONVERT(date, GETDATE()))
 				AND mct.CaseTicketNumber NOT IN ('NBCM202400079345', 'NBCM202400079343', 'NBCM202400090977'";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @"

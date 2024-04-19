@@ -65,7 +65,7 @@ namespace CardServicesProcessor
                 if (!CacheManager.Cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
                     var parameters = new DynamicParameters();
-                    parameters.Add("@caseTicketStatusId", new int[] { 9,3 });
+                    parameters.Add("@caseTopicId", 24);
                     parameters.Add("@approvedStatus", "Approved");
                     dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log, parameters);
                     _ = CacheManager.Cache.Set($"{settings.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
