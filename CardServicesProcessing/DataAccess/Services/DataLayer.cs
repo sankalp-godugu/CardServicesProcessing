@@ -67,19 +67,19 @@ namespace CardServicesProcessor.DataAccess.Services
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
 
             try
             {
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropAllCSCases, transaction, log, nameof(SQLConstantsCardServices.DropAllCSCases));
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblMemberInsuranceMax, transaction, log, nameof(SQLConstantsCardServices.DropTblMemberInsuranceMax));
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.DropTblReimbursementAmount, transaction, log, nameof(SQLConstantsCardServices.DropTblReimbursementAmount));
-
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoAllCSCases, transaction, log, nameof(SQLConstantsCardServices.SelectIntoAllCSCases), parameters);
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoMemberInsuranceMax, transaction, log, nameof(SQLConstantsCardServices.SelectIntoMemberInsuranceMax));
-                await ExecuteSqlAndLogMetricAsync(connection, SQLConstantsCardServices.SelectIntoTblReimbursementAmount, transaction, log, nameof(SQLConstantsCardServices.SelectIntoTblReimbursementAmount));
-
-                IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, SQLConstantsCardServices.SelectCases, transaction, log, nameof(SQLConstantsCardServices.SelectCases));
+                string combinedSql = SQLConstantsCardServices.DropTblAllCases
+                                    + SQLConstantsCardServices.DropTblMemberInsuranceMax
+                                    + SQLConstantsCardServices.DropTblReimbursementAmount
+                                    + SQLConstantsCardServices.SelectIntoTblAllCases
+                                    + SQLConstantsCardServices.SelectIntoTblMemberInsuranceMax
+                                    + SQLConstantsCardServices.SelectIntoTblReimbursementAmount
+                                    + SQLConstantsCardServices.SelectFromTblCases;
+                
+                IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, combinedSql, transaction, log, parameters);
                 return result;
             }
             catch (SqlException ex)
@@ -108,27 +108,32 @@ namespace CardServicesProcessor.DataAccess.Services
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
 
             try
             {
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementPayments, transaction, log, nameof(SqlConstantsCheckIssuance.DropReimbursementPayments));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress1, transaction, log, nameof(SqlConstantsCheckIssuance.DropReimbursementAddress1));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress2, transaction, log, nameof(SqlConstantsCheckIssuance.DropReimbursementAddress2));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementAddress3, transaction, log, nameof(SqlConstantsCheckIssuance.DropReimbursementAddress3));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropTempFinal, transaction, log, nameof(SqlConstantsCheckIssuance.DropTempFinal));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.DropReimbursementFinal, transaction, log, nameof(SqlConstantsCheckIssuance.DropReimbursementFinal));
+                string combinedSql = SqlConstantsCheckIssuance.DropReimbursementPayments
+                                    + SqlConstantsCheckIssuance.DropReimbursementAddress1
+                                    + SqlConstantsCheckIssuance.DropReimbursementAddress2
+                                    + SqlConstantsCheckIssuance.DropReimbursementAddress3
+                                    + SqlConstantsCheckIssuance.DropTempFinal
+                                    + SqlConstantsCheckIssuance.DropReimbursementFinal
+                                    + SqlConstantsCheckIssuance.SelectIntoReimbursementPayments
+                                    + connection.Database == Databases.Nations
+                                        ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT
+                                        : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV
+                                    + SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2
+                                    + SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3
+                                    + SqlConstantsCheckIssuance.SelectIntoTempFinal
+                                    + SqlConstantsCheckIssuance.SelectIntoReimbursementFinal
+                                    + SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo
+                                    + SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement;
 
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementPayments, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoReimbursementPayments), parameters);
-                await ExecuteSqlAndLogMetricAsync(connection, connection.Database == Databases.Nations ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoTempFinal, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoTempFinal));
-                await ExecuteSqlAndLogMetricAsync(connection, SqlConstantsCheckIssuance.SelectIntoReimbursementFinal, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoReimbursementFinal));
+                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectRawData));
 
-                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, transaction, log, nameof(SqlConstantsCheckIssuance.SelectRawData));
-                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo));
-                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement, transaction, log, nameof(SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement));
+                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo));
+
+                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement));
 
                 return new CheckIssuance
                 {
@@ -180,15 +185,15 @@ namespace CardServicesProcessor.DataAccess.Services
 
         public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, string queryName, DynamicParameters? parameters = null)
         {
-            log.LogInformation($"{queryName} > Running...");
+            //log.LogInformation($"{queryName} > Running...");
             Stopwatch sw = Stopwatch.StartNew();
             _ = await connection.ExecuteAsync(sqlCommand, parameters, transaction);
             log.LogInformation($"{queryName} > {sw.Elapsed.TotalSeconds} sec");
         }
 
-        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, string queryName, DynamicParameters? parameters = null)
+        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, DynamicParameters? parameters = null, string ? queryName = null)
         {
-            log.LogInformation($"{queryName} > Running...");
+            //log.LogInformation($"{queryName} > Running...");
             Stopwatch sw = Stopwatch.StartNew();
             IEnumerable<T> result = await connection.QueryAsync<T>(sqlCommand, parameters, transaction);
             log.LogInformation($"{queryName} > {sw.Elapsed.TotalSeconds} sec");

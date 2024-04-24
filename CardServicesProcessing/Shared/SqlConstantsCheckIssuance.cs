@@ -3,12 +3,12 @@
     public static class SqlConstantsCheckIssuance
     {
         public static readonly string Query = @"";
-        public static readonly string DropReimbursementPayments = @"DROP TABLE IF EXISTS ##ReimbursementPayments";
-        public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS ##ReimbursementAddress1";
-        public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS ##ReimbursementAddress2";
-        public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS ##ReimbursementAddress3";
-        public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS ##TempFinal";
-        public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS ##ReimbursementFinal";
+        public static readonly string DropReimbursementPayments = @"DROP TABLE IF EXISTS #ReimbursementPayments;";
+        public static readonly string DropReimbursementAddress1 = @"DROP TABLE IF EXISTS #ReimbursementAddress1;";
+        public static readonly string DropReimbursementAddress2 = @"DROP TABLE IF EXISTS #ReimbursementAddress2;";
+        public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #ReimbursementAddress3;";
+        public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #TempFinal;";
+        public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS #ReimbursementFinal;";
         public static readonly string SelectIntoReimbursementPayments = @"
             SELECT
 	            mc.NHMemberID,
@@ -25,15 +25,15 @@
 	            JSON_VALUE(bm.ClientResData, '$.PurseSlot') AS PurseSlot,
 	            JSON_VALUE(bm.ClientResData, '$.TxnAmount') AS AmountDeductedFromMember,
 	            CONVERT(VARCHAR, bm.TxnResponseDate, 110) AS RequestDate
-	            INTO ##ReimbursementPayments
+	            INTO #ReimbursementPayments
 	            FROM ServiceRequest.MemberCaseTickets mct
 	            JOIN ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
 	            JOIN PaymentGateway.BenefitManagement bm WITH(NOLOCK) ON bm.NHMemberID=mc.NHMemberID AND bm.TxnGroupReferenceID = mc.CaseNumber
 	            WHERE CaseTopicID = @caseTopicId
 	            AND CaseTicketStatusID IN (9,3)
 	            AND ApprovedStatus = @approvedStatus
-	            AND cast(bm.TxnResponseDate as date) > DATEADD(day, -7, CONVERT(date, GETDATE()))
-				AND mct.CaseTicketNumber NOT IN ('NBCM202400079345', 'NBCM202400079343', 'NBCM202400090977'";
+	            AND cast(bm.TxnResponseDate as date) > @fromDate);
+				--AND mct.CaseNumber NOT IN ('');";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @"
             SELECT DISTINCT
 	c.NHMemberID, 
@@ -54,8 +54,8 @@
 	CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS Address2,
 	CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS Address3,
 	'' AS type
-INTO ##ReimbursementAddress1
-FROM ##ReimbursementPayments rp 
+INTO #ReimbursementAddress1
+FROM #ReimbursementPayments rp 
 LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid and c.CardIssuer = 'BANCORP'
 LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
 LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
@@ -66,8 +66,8 @@ JOIN master.Addresses a ON a.MemberID = mm.MemberID
 WHERE ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
-	AND ic.InsuranceCarrierID NOT IN (302, 141)
-	AND ih.HealthPlanNumber IS NOT NULL";
+	AND ic.InsuranceCarrierID NOT IN (141, 270, 302)
+	AND ih.HealthPlanNumber IS NOT NULL;";
         public static readonly string SelectIntoReimbursementAddress1_ELV = @"
             SELECT DISTINCT
 	c.NHMemberID, 
@@ -88,8 +88,8 @@ WHERE ih.IsActive = 1
 	CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address1""'),'',JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""address2""')) AS Address2,
 	CONCAT(JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""city""'), ',', ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""state""'), ' ', JSON_VALUE(JSON_VALUE(CaseticketData, '$.""New Reimbursement Request"".TransactionDetails.Address'),'$.""zipCode""')) AS Address3,
 	'' AS type
-INTO ##ReimbursementAddress1
-FROM ##ReimbursementPayments rp 
+INTO #ReimbursementAddress1
+FROM #ReimbursementPayments rp 
 LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid
 LEFT JOIN fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
 LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
@@ -100,8 +100,8 @@ JOIN master.Addresses a ON a.MemberID = mm.MemberID
 WHERE ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
-	AND ic.InsuranceCarrierID NOT IN (302, 141)
-	AND ih.HealthPlanNumber IS NOT NULL";
+	AND ic.InsuranceCarrierID NOT IN (141, 270, 302)
+	AND ih.HealthPlanNumber IS NOT NULL;";
         public static readonly string SelectIntoReimbursementAddress2 = @"
 SELECT DISTINCT
 	c.NHMemberID, 
@@ -122,21 +122,21 @@ SELECT DISTINCT
 	a.Address1 AS Address2,
 	CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS Address3,
 	a.AddressTypeCode
-INTO ##ReimbursementAddress2
+INTO #ReimbursementAddress2
 FROM member.membercards c 
 LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
 LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
 LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
 LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
 JOIN master.Addresses a ON a.MemberID = mm.MemberID
-JOIN ##ReimbursementPayments rp ON c.NHMemberID = rp.nhmemberid
+JOIN #ReimbursementPayments rp ON c.NHMemberID = rp.nhmemberid
 WHERE
 	ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
 	AND ih.HealthPlanNumber IS NOT NULL
-	AND ic.InsuranceCarrierID NOT IN (302, 270) 
-	AND a.AddressTypeCode = 'MAIL'";
+	AND ic.InsuranceCarrierID NOT IN (141, 270, 302) 
+	AND a.AddressTypeCode = 'MAIL';";
         public static readonly string SelectIntoReimbursementAddress3 = @"
 SELECT DISTINCT
 	c.NHMemberID, 
@@ -157,8 +157,8 @@ SELECT DISTINCT
 	a.Address1 AS Address2,
 	CONCAT(a.city, ',', ' ', a.State, ' ', LEFT(a.ZipCode, 5)) AS Address3,
 	'' AS type
-INTO ##ReimbursementAddress3
-FROM ##ReimbursementPayments rp 
+INTO #ReimbursementAddress3
+FROM #ReimbursementPayments rp 
 LEFT JOIN member.membercards c ON c.NHMemberID = rp.nhmemberid 
 Left join fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
 LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
@@ -171,7 +171,7 @@ WHERE ih.IsActive = 1
 	AND c.IsActive = 1
 	AND ih.HealthPlanNumber IS NOT NULL
 	AND c.IsActive = 1
-	AND a.AddressTypeCode = 'PERM'";
+	AND a.AddressTypeCode = 'PERM';";
         public static readonly string SelectIntoTempFinal = @"
 SELECT
 	ra1.NHMemberID,
@@ -188,35 +188,6 @@ SELECT
 	COALESCE(NULLIF(ra1.CompanyName, ''), ra2.CompanyName, ra3.CompanyName) AS CompanyName,
 	COALESCE(NULLIF(ra1.VendorName, 'Member -'), ra2.VendorName, ra3.VendorName) AS VendorName,
 	COALESCE(NULLIF(ra1.PrintOnCheck, ''), ra2.PrintOnCheck, ra3.PrintOnCheck) AS PrintOnCheck,
-	--CASE WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName= '') AND (ra2.FirstName IS NULL OR ra2.FirstName = '')
-	--		THEN ra3.CardholderFirstName
-	--	 WHEN (ra1.CardholderFirstName IS NULL OR ra1.CardholderFirstName = '')
-	--		THEN ra2.FirstName ELSE ra1.CardholderFirstName
-	--END AS CardholderFirstName,
-	--CASE WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName = '') AND (ra2.LastName IS NULL OR ra2.LastName = '')
-	--		THEN ra3.CardholderLastName
-	--	 WHEN (ra1.CardHolderLastName IS NULL OR ra1.CardholderLastName = '')
-	--		THEN ra2.LastName
-	--		ELSE ra1.CardholderLastName
-	--END AS CardholderLastName,
-	--CASE WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName='') AND (ra2.CompanyName IS NULL OR ra2.CompanyName='')
-	--		THEN ra3.CompanyName
-	--	 WHEN (ra1.CompanyName IS NULL OR ra1.CompanyName='')
-	--		THEN ra2.CompanyName
-	--		ELSE ra1.CompanyName
-	--END AS CompanyName,
-	--CASE WHEN (ra1.VendorName = 'Member - ' OR ra1.VendorName IS NULL) AND (ra2.VendorName = 'Member - ' OR ra2.VendorName IS NULL)
-	--		THEN ra3.VendorName
-	--	 WHEN (ra1.VendorName = 'Member - ' OR ra1.VendorName IS NULL)
-	--		THEN ra2.VendorName
-	--		ELSE ra1.VendorName
-	--END AS VendorName,
-	--CASE WHEN (ra1.PrintOnCheck = '' OR ra1.PrintOnCheck IS NULL) AND (ra2.PrintOnCheck = '' OR ra2.PrintOnCheck IS NULL)
-	--		THEN ra3.PrintOnCheck
-	--	 WHEN (ra1.PrintOnCheck = '' OR ra1.PrintOnCheck IS NULL)
-	--		THEN ra2.PrintOnCheck
-	--		ELSE ra1.PrintOnCheck
-	--END AS PrintOnCheck,
 	CASE WHEN ra1.type = '' AND ra1.Address1 != '' THEN ra1.Address1
 		 WHEN ra2.AddressTypeCode = 'Mail' THEN ra2.Address1
 		 ELSE ra3.Address1
@@ -232,10 +203,10 @@ SELECT
 	CASE WHEN ra1.type = '' THEN ''
 		 ELSE ra2.AddressTypeCode
 	END AS AddressTypeCode
-INTO ##TempFinal
-FROM ##ReimbursementAddress1 ra1
-LEFT JOIN ##ReimbursementAddress2 ra2 ON ra1.txnreferenceid=ra2.txnreferenceid
-LEFT JOIN ##ReimbursementAddress3 ra3 ON ra1.txnreferenceid=ra3.txnreferenceid";
+INTO #TempFinal
+FROM #ReimbursementAddress1 ra1
+LEFT JOIN #ReimbursementAddress2 ra2 ON ra1.txnreferenceid=ra2.txnreferenceid
+LEFT JOIN #ReimbursementAddress3 ra3 ON ra1.txnreferenceid=ra3.txnreferenceid;";
         public static readonly string SelectIntoReimbursementFinal = @" 
 SELECT 
 	t.NHMemberID, 
@@ -254,8 +225,8 @@ SELECT
 	t.Address1,
 	t.Address2,
 	t.Address3
-INTO ##ReimbursementFinal
-FROM ##TempFinal t
+INTO #ReimbursementFinal
+FROM #TempFinal t
 GROUP BY 
 	t.NHMemberID, 
 	t.InsuranceCarrierName,
@@ -272,7 +243,7 @@ GROUP BY
 	t.PrintOnCheck,
 	t.Address1,
 	t.Address2,
-	t.Address3";
+	t.Address3;";
         public static readonly string SelectIntoMemberMailingInfo = @" 
 SELECT 
 	CardholderFirstName,
@@ -285,8 +256,8 @@ SELECT
 	Address3,
 	--'Due on Receipt' AS Terms,
 	SUM(CAST(AmountDeductedFromMember AS DECIMAL(7,2))) AS TotalAmountDeductedFromMember
-INTO ##MemberMailingInfo
-FROM ##ReimbursementFinal
+INTO #MemberMailingInfo
+FROM #ReimbursementFinal
 GROUP BY
 	CompanyName,
 	CardholderFirstName,
@@ -295,7 +266,7 @@ GROUP BY
 	PrintOnCheck,
 	Address1,
 	Address2,
-	Address3";
+	Address3;";
         public static readonly string SelectIntoMemberCheckReimbursement = @"
 SELECT
 	TxnID AS CaseNumber,
@@ -303,15 +274,15 @@ SELECT
 	TxnID AS 'Memo',
 	RequestDate,
 	SUM(CAST(AmountDeductedFromMember AS DECIMAL(7,2))) AS TotalAmountDeductedFromMember
-INTO ##MemberCheckReimbursement
-FROM ##ReimbursementFinal
+INTO #MemberCheckReimbursement
+FROM #ReimbursementFinal
 GROUP BY
 	nhmemberid,
 	VendorName,
 	RequestDate,
-	TxnID";
-        public static readonly string SelectRawData = @"SELECT * FROM ##ReimbursementFinal ORDER BY NHMemberID";
-		public static readonly string SelectMemberMailingInfo = @"SELECT * FROM ##MemberMailingInfo ORDER BY CardholderFirstName";
-		public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM ##MemberCheckReimbursement ORDER BY VendorName";
+	TxnID;";
+        public static readonly string SelectRawData = @"SELECT * FROM #ReimbursementFinal ORDER BY NHMemberID;";
+		public static readonly string SelectMemberMailingInfo = @"SELECT * FROM #MemberMailingInfo ORDER BY CardholderFirstName;";
+		public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM #MemberCheckReimbursement ORDER BY VendorName;";
     }
 }

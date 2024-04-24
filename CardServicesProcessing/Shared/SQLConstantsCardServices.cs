@@ -2,10 +2,10 @@
 {
     public static class SQLConstantsCardServices
     {
-        public static readonly string DropAllCSCases = @"DROP TABLE IF EXISTS ##AllCSCases";
-        public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS ##MemberInsuranceMax";
-        public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS ##ReimbursementAmount";
-        public static readonly string SelectIntoAllCSCases = @"
+        public static readonly string DropTblAllCases = @"DROP TABLE IF EXISTS #AllCSCases;";
+        public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS #MemberInsuranceMax;";
+        public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS #ReimbursementAmount;";
+		public static readonly string SelectIntoTblAllCases = @"
 			SELECT
 					ic.InsuranceCarrierName,
 					mc.CaseID,
@@ -36,13 +36,13 @@
 					mct.ClosingComments,
 					mlu.Name AS DenialReason,
 					mct.ClosedDate
-			INTO	##AllCSCases
+			INTO	#AllCases
 			FROM	ServiceRequest.MemberCases mc
 			JOIN	ServiceRequest.MemberCaseTickets mct ON mct.CaseID=mc.CaseID
-			JOIN	ServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = 1
+			JOIN	ServiceRequest.MemberCaseCategory mcc ON mcc.CaseCategoryID = mct.CaseCategoryID AND mcc.CaseCategoryID = @caseCategoryId
 			JOIN	master.Members mem ON mem.NHMemberID = mc.NHMemberID
 			JOIN	Insurance.InsuranceHealthPlans ihp WITH (NOLOCK) ON ihp.InsuranceHealthPlanID = mc.InsuranceHealthPlanID
-			JOIN	Insurance.InsuranceCarriers ic WITH (NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = 1
+			JOIN	Insurance.InsuranceCarriers ic WITH (NOLOCK) ON ic.InsuranceCarrierID = ihp.InsuranceCarrierID AND ic.IsActive = @isActive
 			JOIN	ServiceRequest.MemberCaseTopics mcto ON mcto.casetopicid = mct.CaseTopicID
 			JOIN	ServiceRequest.MemberCaseTypeTopicMapping mcttm ON mcttm.CaseTopicID = mcto.CaseTopicID
 			JOIN	ServiceRequest.membercasetypes mcty ON mcty.CaseTypeID = mcttm.CaseTypeID
@@ -51,74 +51,75 @@
 			JOIN	master.Addresses addr ON addr.MemberID = mem.MemberID
 			WHERE	FirstName NOT LIKE '%test%'
 			AND		LastName NOT LIKE '%test%'
-			AND		mc.IsActive = 1
-			AND		addr.AddressTypeCode = 'PERM'
+			AND		mc.IsActive = @isActive
+			AND		addr.AddressTypeCode = @addressTypeCode
 			--TEMP:
-			AND		mcto.CaseTopicID = @caseTopicId
-			AND		YEAR(CONVERT(DATETIME2, mct.ClosedDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = @year";
-        public static readonly string SelectIntoMemberInsuranceMax = @"
-			SELECT		MAX(mi.CreateDate) AS CreateDate,
+			--AND		mcto.CaseTopicID = @caseTopicId
+			AND		YEAR(CONVERT(DATETIME, SWITCHOFFSET(mct.ClosedDate, '-05:00'))) = @year;";
+        public static readonly string SelectIntoTblMemberInsuranceMax = @"
+
+            SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,
-						allcs.InsuranceHealthPlanID
-			INTO		##MemberInsuranceMax
+						allCases.InsuranceHealthPlanID
+			INTO		#MemberInsuranceMax
 			FROM		master.MemberInsurances mi
-			JOIN		##AllCSCases allcs
-			ON			allcs.memberid = mi.MemberID
-			AND			mi.InsuranceHealthPlanID = allcs.InsuranceHealthPlanID
-			WHERE		mi.IsActive = 1
+			JOIN		#AllCases allCases
+			ON			allCases.memberid = mi.MemberID
+			AND			mi.InsuranceHealthPlanID = allCases.InsuranceHealthPlanID
+			WHERE		mi.IsActive = @isActive
 			GROUP BY	mi.MemberID,
-						allcs.InsuranceHealthPlanID";
+						allCases.InsuranceHealthPlanID;";
         public static readonly string SelectIntoTblReimbursementAmount = @"
 			SELECT
-					allcs.CaseTicketID,
+					allCases.CaseTicketID,
 					ri.IsProcessEligible,
 					SUM(ri.ApprovedAmount) AS ApprovedTotalAmount
-			INTO		##ReimbursementAmount
-			FROM		##AllCSCases allcs
+			INTO		#ReimbursementAmount
+			FROM		#AllCases allCases
 			JOIN		ServiceRequest.ReimbursementItems ri
-			ON			allcs.CaseTicketID = ri.CaseTicketId
-			GROUP BY	allcs.CaseTicketID, ri.IsProcessEligible
-			HAVING ri.IsProcessEligible = 1";
-        public static readonly string SelectCases = @"
+			ON			allCases.CaseTicketID = ri.CaseTicketId
+			GROUP BY	allCases.CaseTicketID, ri.IsProcessEligible
+			HAVING		ri.IsProcessEligible = @isProcessEligible;";
+        public static readonly string SelectFromTblCases = @"
 			SELECT DISTINCT
-				allcs.InsuranceCarrierName,
-	 			allcs.HealthPlanName,
-				allcs.CaseTicketNumber,
-				allcs.CaseCategory,
-				allcs.CreateDate,
-				allcs.FirstName,
-				allcs.LastName,
-				allcs.DateOfBirth,
-				allcs.City,
-				allcs.State,
-				allcs.NHMemberID,
+				allCases.InsuranceCarrierName,
+	 			allCases.HealthPlanName,
+				allCases.CaseTicketNumber,
+				allCases.CaseCategory,
+				allCases.CreateDate,
+				allCases.FirstName,
+				allCases.LastName,
+				allCases.DateOfBirth,
+				allCases.City,
+				allCases.State,
+				allCases.NHMemberID,
 				mid.InsuranceNbr,
-				allcs.CaseTopic,
-				allcs.CaseType,
-				allcs.CaseTicketData,
+				allCases.CaseTopic,
+				allCases.CaseType,
+				allCases.CaseTicketData,
 				ri.WalletValue,
-				allcs.DenialReason,
+				allCases.DenialReason,
 				ra.ApprovedTotalAmount,
-				allcs.CaseStatus,
-				allcs.ApprovedStatus,
-				allcs.ClosedDate AS ProcessedDate,
-				allcs.ClosingComments
-		FROM		##AllCSCases allcs
-		JOIN		##MemberInsuranceMax mix ON mix.MemberID = allcs.MemberID
-		JOIN		master.MemberInsurances mi ON allcs.MemberID = mi.MemberID AND mix.CreateDate = mi.CreateDate
+				allCases.CaseStatus,
+				allCases.ApprovedStatus,
+				allCases.ClosedDate AS ProcessedDate,
+				allCases.ClosingComments
+		FROM		#AllCases allCases
+		JOIN		#MemberInsuranceMax mix ON mix.MemberID = allCases.MemberID
+		JOIN		master.MemberInsurances mi ON allCases.MemberID = mi.MemberID AND mix.CreateDate = mi.CreateDate
 		JOIN		master.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID
-		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allcs.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = 1
-		LEFT JOIN	##ReimbursementAmount ra ON allcs.CaseTicketID = ra.CaseTicketID";
+		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allCases.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = @isProcessEligible
+		LEFT JOIN	#ReimbursementAmount ra ON allCases.CaseTicketID = ra.CaseTicketID;";
 
         public static readonly List<Tuple<string, string>> QueryToNameMap =
         [
-            new(DropAllCSCases, nameof(DropAllCSCases)),
+            new(DropTblAllCases, nameof(DropTblAllCases)),
             new(DropTblMemberInsuranceMax, nameof(DropTblMemberInsuranceMax)),
             new(DropTblReimbursementAmount, nameof(DropTblReimbursementAmount)),
-            new(SelectIntoAllCSCases, nameof(SelectIntoAllCSCases)),
-            new(SelectIntoMemberInsuranceMax, nameof(SelectIntoMemberInsuranceMax)),
+            new(SelectIntoTblAllCases, nameof(SelectIntoTblAllCases)),
+            new(SelectIntoTblMemberInsuranceMax, nameof(SelectIntoTblMemberInsuranceMax)),
             new(SelectIntoTblReimbursementAmount, nameof(SelectIntoTblReimbursementAmount)),
-            new(SelectCases, nameof(SelectCases))
+            new(SelectFromTblCases, nameof(SelectFromTblCases))
         ];
     }
 }

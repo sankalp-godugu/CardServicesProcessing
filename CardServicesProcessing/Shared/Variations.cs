@@ -27,15 +27,15 @@
             "case denied",
             "Case closed due to being a storefront order reshipment request"
         ];
-        public static readonly string[] AssistiveDevicesVariations = ["assistive devices"];
-        public static readonly string[] ActiveFitnessVariations = ["fitness", "AAF"];
-        public static readonly string[] DvhVariations = ["dvh", "dhv", "vdh", "vhd", "hvd", "hdv", "dental", "vision", "hearing", "ZVD2300"];
-        public static readonly string[] HgVariations = ["hg", "grocer", "heg", "healthy food", "FOD2312"];
-        public static readonly string[] OtcVariations = ["otc", "over the counter", "ESM"];
+        public static readonly string[] AssistiveDevicesVariations = ["assistive devices", "Embedded Assistive Devices"];
+        public static readonly string[] ActiveFitnessVariations = ["fitness", "AAF", "Account Active Fitness"];
+        public static readonly string[] DvhVariations = ["dvh", "dhv", "vdh", "vhd", "hvd", "hdv", "dental", "vision", "hearing", "ZVD2300", "Vision, Dental, Hearing", "Essential Extras Flex Account DVH", "Essential Extras Flex Account Dental and Vision", "Dental, Vision, Hearing, Acupuncture, Chiropractor"];
+        public static readonly string[] HgVariations = ["hg", "grocer", "heg", "healthy food", "FOD2312", "Combined Food and Over The Counter", "Combined Food and Utilities", "Combined Food and Home Modification"];
+        public static readonly string[] OtcVariations = ["otc", "Over the Counter", "ESM"];
         public static readonly string[] PersVariations = [" pers "];
         public static readonly string[] RewardsVariations = ["Wellness your way", "Open Spend - Unrestricted Rewards"];
         public static readonly string[] ServiceVariations = ["service dog", " dog "];
-        public static readonly string[] UtilityVariations = ["utility", "utilities", "utl", "parking", "bathroom safety"];
+        public static readonly string[] UtilityVariations = ["utility", "utilities", "utl", "parking", "bathroom safety", "Gas and Utilities", "Utilites and Bathroom Safety", "Community Rent Groceries and Utilities", "Parking"];
         public static readonly string[] NaVariations = ["not a valid reimbursement",
             "not a reimbursement",
             "not reimbursement",

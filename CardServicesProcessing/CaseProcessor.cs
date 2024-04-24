@@ -23,7 +23,7 @@ namespace CardServicesProcessor
                 {
                     //Test();
 
-                    List<ReportInfo> reportSettings =
+                    List<Report> reportInfo =
                     [
                         new()
                         {
@@ -43,10 +43,13 @@ namespace CardServicesProcessor
                             SheetFinal = CardServicesConstants.Elevance.SheetFinal,
                             SheetIndex = CardServicesConstants.Elevance.SheetFinalIndex
                         }
-                        
                     ];
 
-                    await ProcessReports(config, dataLayer, log, reportSettings);
+                    // TODO: remove infinite loop, only here to test updates rapidly by caching data
+                    while (true)
+                    {
+                        await ProcessReports(config, dataLayer, log, reportInfo);
+                    }
 
                     log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -64,9 +67,9 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<ReportInfo> reportSettings)
+        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<Report> reports)
         {
-            foreach (ReportInfo settings in reportSettings)
+            foreach (Report settings in reports)
             {
                 Stopwatch sw = new();
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
@@ -78,8 +81,12 @@ namespace CardServicesProcessor
                 {
                     // Data not found in cache, fetch from source and store in cache
                     var parameters = new DynamicParameters();
+                    parameters.Add("@caseCategoryId", 1);
+                    parameters.Add("@isActive", 1);
+                    parameters.Add("@addressTypeCode", "PERM");
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@year", 2024);
+                    parameters.Add("@isProcessEligible", 1);
                     response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log, parameters);
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
@@ -92,11 +99,11 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
+                /*log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
                 sw.Restart();
                 DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");*/
 
                 //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
                 //sw.Restart();
@@ -131,7 +138,7 @@ namespace CardServicesProcessor
             return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
         }
 
-        private class ReportInfo
+        private class Report
         {
             public required string SheetName { get; set; }
             public required string SheetPrev { get; set; }

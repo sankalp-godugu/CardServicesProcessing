@@ -8,5 +8,6 @@
         public const string Duplicate = "Duplicate";
 
         public const string Reimbursement = "Reimbursement";
+        public readonly List<string> wordsToExclude = ["a", "an", "the", "for", "and", "of", "by", "&"];
     }
 }

@@ -19,7 +19,7 @@ namespace CardServicesProcessor
             {
                 await Task.Run(async () =>
                 {
-                    List<ReportInfo> reportInfo =
+                    List<Report> reportInfo =
                     [
                         new()
                         {
@@ -31,7 +31,11 @@ namespace CardServicesProcessor
                         }
                     ];
 
-                    await ProcessReports(config, dataLayer, log, reportInfo);
+                    // TODO: remove infinite loop, only here to test updates rapidly by caching data
+                    while (true)
+                    {
+                        await ProcessReports(config, dataLayer, log, reportInfo);
+                    }
 
                     log.LogInformation($"Opening the Excel file at {CheckIssuanceConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -49,31 +53,32 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<ReportInfo> reportSettings)
+        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<Report> reportInfo)
         {
             ExcelService.DeleteWorkbook(CheckIssuanceConstants.FilePathCurr);
 
-            foreach (ReportInfo settings in reportSettings)
+            foreach (Report report in reportInfo)
             {
                 Stopwatch sw = new();
 
-                log.LogInformation($"{settings.SheetName} > Processing data");
-                string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
+                log.LogInformation($"{report.SheetName} > Processing data");
+                string conn = GetConnectionString(config, $"{report.SheetName}ProdConn");
 
-                log.LogInformation($"{settings.SheetName} > Getting all approved reimbursements");
+                log.LogInformation($"{report.SheetName} > Getting all approved reimbursements");
                 sw.Start();
-                if (!CacheManager.Cache.TryGetValue($"{settings.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
+                if (!CacheManager.Cache.TryGetValue($"{report.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
                     var parameters = new DynamicParameters();
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@approvedStatus", "Approved");
+                    parameters.Add("@fromDate", DateTime.Now.AddDays(-7).Date);
                     dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log, parameters);
-                    _ = CacheManager.Cache.Set($"{settings.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
+                    _ = CacheManager.Cache.Set($"{report.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Adding data to Excel");
+                log.LogInformation($"{report.SheetName} > Adding data to Excel");
                 sw.Start();
                 ExcelService.AddToExcel<CheckIssuance>(dataCurr);
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
@@ -87,7 +92,7 @@ namespace CardServicesProcessor
             return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
         }
 
-        private class ReportInfo
+        private class Report
         {
             public required string SheetName { get; set; }
             public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.SheetIndexToNameMap;
