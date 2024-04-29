@@ -21,19 +21,8 @@ namespace CardServicesProcessor
             {
                 await Task.Run(async () =>
                 {
-                    //Test();
-
                     List<Report> reportInfo =
                     [
-                        new()
-                        {
-                            SheetName = CardServicesConstants.Nations.SheetName,
-                            SheetPrev = CardServicesConstants.Nations.SheetPrev,
-                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
-                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
-                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
-                            SheetIndex = CardServicesConstants.Nations.SheetFinalIndex
-                        },
                         new()
                         {
                             SheetName = CardServicesConstants.Elevance.SheetName,
@@ -42,14 +31,19 @@ namespace CardServicesProcessor
                             SheetDraft = CardServicesConstants.Elevance.SheetDraft,
                             SheetFinal = CardServicesConstants.Elevance.SheetFinal,
                             SheetIndex = CardServicesConstants.Elevance.SheetFinalIndex
+                        },
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Nations.SheetName,
+                            SheetPrev = CardServicesConstants.Nations.SheetPrev,
+                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
+                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
+                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
+                            SheetIndex = CardServicesConstants.Nations.SheetFinalIndex
                         }
                     ];
 
-                    // TODO: remove infinite loop, only here to test updates rapidly by caching data
-                    while (true)
-                    {
-                        await ProcessReports(config, dataLayer, log, reportInfo);
-                    }
+                     await ProcessReports(config, dataLayer, log, reportInfo);
 
                     log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -99,11 +93,11 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                /*log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
+                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
                 sw.Restart();
                 DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 sw.Stop();
-                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");*/
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
                 //sw.Restart();

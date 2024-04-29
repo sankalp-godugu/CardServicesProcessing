@@ -129,6 +129,8 @@ namespace CardServicesProcessor.DataAccess.Services
                                     + SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo
                                     + SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement;
 
+                await ExecuteSqlAndLogMetricAsync(connection, combinedSql, transaction, log, parameters);
+
                 IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectRawData));
 
                 IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo));
@@ -183,7 +185,7 @@ namespace CardServicesProcessor.DataAccess.Services
             return parameters.Select(sp => new SqlParameter(sp.Key, sp.Value)).ToList();
         }
 
-        public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, string queryName, DynamicParameters? parameters = null)
+        public static async Task ExecuteSqlAndLogMetricAsync(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, DynamicParameters? parameters = null, string? queryName = null)
         {
             //log.LogInformation($"{queryName} > Running...");
             Stopwatch sw = Stopwatch.StartNew();
@@ -191,7 +193,7 @@ namespace CardServicesProcessor.DataAccess.Services
             log.LogInformation($"{queryName} > {sw.Elapsed.TotalSeconds} sec");
         }
 
-        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, DynamicParameters? parameters = null, string ? queryName = null)
+        public static async Task<IEnumerable<T>> QuerySqlAndLogMetricAsync<T>(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, DynamicParameters? parameters = null, string? queryName = null)
         {
             //log.LogInformation($"{queryName} > Running...");
             Stopwatch sw = Stopwatch.StartNew();
