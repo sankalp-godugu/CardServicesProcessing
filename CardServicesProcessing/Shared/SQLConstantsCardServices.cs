@@ -53,7 +53,6 @@
 			AND		LastName NOT LIKE '%test%'
 			AND		mc.IsActive = @isActive
 			AND		addr.AddressTypeCode = @addressTypeCode
-			--TEMP:
 			--AND		mct.CaseTopicID = @caseTopicId
 			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = @year;";
         public static readonly string SelectIntoTblMemberInsuranceMax = @"

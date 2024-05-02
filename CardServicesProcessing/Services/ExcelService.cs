@@ -162,6 +162,7 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400075178-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.NotReimbursement);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
                     break;
                 case "NBCM202400075627-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
@@ -170,6 +171,15 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400079733-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 27.39.ToString("C2"));
                     break;
+                case "NBCM202400086471-1":
+                case "NBCM202400085882-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.Expired);
+                    break;
+                case "NBCM202400091233-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.IneligibleService)
             }
         }
 

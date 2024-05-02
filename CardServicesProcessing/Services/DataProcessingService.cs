@@ -456,6 +456,22 @@ namespace CardServicesProcessor.Services
             }
         }
 
+        public static void RemoveDuplicates(DataTable table, string columnName)
+        {
+            // Group rows by the specified column and select only the first row from each group
+            var uniqueRows = table.AsEnumerable()
+                                  .GroupBy(row => row.Field<string>(columnName))
+                                  .Select(group => group.First())
+                                  .CopyToDataTable();
+
+            // Clear the original DataTable and import the unique rows
+            table.Clear();
+            foreach (DataRow row in uniqueRows.Rows)
+            {
+                table.ImportRow(row);
+            }
+        }
+
         private static bool IsValueInTextFile(string filePath, IEnumerable<string?> searchValues)
         {
             try

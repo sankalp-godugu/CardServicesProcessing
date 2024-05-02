@@ -117,6 +117,12 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
+                log.LogInformation($"{settings.SheetName} > Removing Duplicates...");
+                sw.Restart();
+                DataProcessingService.RemoveDuplicates(tblCurr, ColumnNames.CaseTicketNumber);
+                sw.Stop();
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
                 log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
                 ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetIndex);
