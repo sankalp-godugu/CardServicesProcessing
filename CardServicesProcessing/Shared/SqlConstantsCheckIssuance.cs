@@ -24,7 +24,7 @@
 	            bm.TxnReferenceID,
 	            JSON_VALUE(bm.ClientResData, '$.PurseSlot') AS PurseSlot,
 	            JSON_VALUE(bm.ClientResData, '$.TxnAmount') AS AmountDeductedFromMember,
-	            CONVERT(VARCHAR, bm.TxnResponseDate, 110) AS RequestDate
+	            CONVERT(VARCHAR, bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time', 110) AS RequestDate
 	            INTO #ReimbursementPayments
 	            FROM ServiceRequest.MemberCaseTickets mct
 	            JOIN ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID

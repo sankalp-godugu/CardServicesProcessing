@@ -54,9 +54,8 @@
 			AND		mc.IsActive = @isActive
 			AND		addr.AddressTypeCode = @addressTypeCode
 			--AND		mct.CaseTopicID = @caseTopicId
-			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time')) = @year;";
+			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) = @year;";
         public static readonly string SelectIntoTblMemberInsuranceMax = @"
-
             SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,
 						allCases.InsuranceHealthPlanID
@@ -109,7 +108,6 @@
 		JOIN		master.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID
 		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allCases.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = @isProcessEligible
 		LEFT JOIN	#ReimbursementAmount ra ON allCases.CaseTicketID = ra.CaseTicketID;";
-
         public static readonly List<Tuple<string, string>> QueryToNameMap =
         [
             new(DropTblAllCases, nameof(DropTblAllCases)),
