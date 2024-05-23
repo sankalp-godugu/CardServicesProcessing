@@ -190,6 +190,9 @@ namespace CardServicesProcessor.Services
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.IneligibleService);
                     break;
+                case "EHCM202400074748-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 351.41.ToString("C2"));
+                    break;
             }
         }
 
@@ -212,7 +215,7 @@ namespace CardServicesProcessor.Services
             //IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
             // Remove empty columns after the specified index
-            RemoveEmptyColumns(dataTable, ColumnNames.ClosingComments);
+            RemoveEmptyColumns(dataTable, ColumnNames.AssignedTo);
 
             // Insert DataTable into the worksheet
             _ = worksheet.Cell(1, 1).InsertTable(dataTable, false);

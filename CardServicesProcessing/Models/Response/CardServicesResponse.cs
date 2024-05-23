@@ -26,5 +26,6 @@
         public string? ApprovedStatus { get; set; }
         public string? ProcessedDate { get; set; }
         public string? ClosingComments { get; set; }
+        public string? AssignedTo { get; set; }
     }
 }

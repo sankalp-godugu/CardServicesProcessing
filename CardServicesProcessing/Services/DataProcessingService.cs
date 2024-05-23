@@ -95,6 +95,7 @@ namespace CardServicesProcessor.Services
                     _ = dt.Columns.Add(ColumnNames.ApprovedStatus);
                     _ = dt.Columns.Add(ColumnNames.ProcessedDate);
                     _ = dt.Columns.Add(ColumnNames.ClosingComments);
+                    _ = dt.Columns.Add(ColumnNames.AssignedTo);
                     firstRow = false;
                 }
                 else
@@ -124,6 +125,7 @@ namespace CardServicesProcessor.Services
                         string? approvedStatus = cssCase.ApprovedStatus?.Trim();
                         DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseAndConvertDateTime(ColumnNames.ProcessedDate);
                         string? closingComments = cssCase.ClosingComments?.Trim();
+                        string? assignedTo = cssCase.AssignedTo?.Trim();
 
                         if (caseTicketNbr == "EHCM202400071230-1")
                         {
@@ -277,6 +279,7 @@ namespace CardServicesProcessor.Services
                         dataRow.FormatForExcel(ColumnNames.ApprovedStatus, approvedStatus);
                         dataRow.FormatForExcel(ColumnNames.ProcessedDate, processedDate?.ToShortDateString());
                         dataRow.FormatForExcel(ColumnNames.ClosingComments, closingComments);
+                        dataRow.FormatForExcel(ColumnNames.AssignedTo, assignedTo);
                         dataRow.FillOutlierData(caseTicketNbr);
                         dt.Rows.Add(dataRow);
                     }
@@ -305,7 +308,7 @@ namespace CardServicesProcessor.Services
             {
                 IXLWorksheet combinedWorksheet = ExcelService.CreateWorksheet(workbook, "2023 reimbursements - All");
 
-                foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023", "2023 Reimbursements-complet")))
+                foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023", "2023 Reimbursements-complet", "Submitted", "Manual Adjustments")))
                 {
                     ExcelService.CopyWorksheetData(worksheet, combinedWorksheet, startRow: combinedWorksheet.LastRowUsed()?.RowNumber() + 1 ?? 1);
                 }
@@ -360,11 +363,11 @@ namespace CardServicesProcessor.Services
                 caseTicketNumber = caseTicketNumber.Contains("-1") ? caseTicketNumber[..^2] : caseTicketNumber;
 
                 // Search for the corresponding row in the second Excel data
-                DataRow[] matchingRows = tblManualReimbursements.Select($"[Case Number] like '%{caseTicketNumber}%' AND NOT ISNULL([Benefit Wallet], '') = ''");
+                DataRow[] matchingRows = tblManualReimbursements.Select($"[Case Number] like '%{caseTicketNumber}%' AND NOT ISNULL([{ColumnNames.PurseNeedAdjustment}], '') = ''");
 
                 if (matchingRows.Length > 0)
                 {
-                    string? benefitWalletFromManualReport = matchingRows[0][ColumnNames.BenefitWallet].ToString()?.Trim();
+                    string? benefitWalletFromManualReport = matchingRows[0][ColumnNames.PurseNeedAdjustment].ToString()?.Trim();
 
                     // Handle empty "Case Closed Date" cell or missing "Case Closed Date" column altogether
                     if (benefitWalletFromManualReport.ContainsNumbersOnly())

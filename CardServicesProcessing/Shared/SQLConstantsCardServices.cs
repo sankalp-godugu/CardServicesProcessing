@@ -31,7 +31,7 @@
 					mct.CaseTicketData,
 					mc.RequestorName,
 					mcs.CaseStatus,
-					CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'UTC' AT TIME ZONE 'Eastern Standard Time') CreateDate,
+					CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time') CreateDate,
 					mct.TransactionStatus,
 					mct.ClosingComments,
 					mlu.Name AS DenialReason,
@@ -54,7 +54,8 @@
 			AND		mc.IsActive = @isActive
 			AND		addr.AddressTypeCode = @addressTypeCode
 			--AND		mct.CaseTopicID = @caseTopicId
-			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) = @year;";
+			AND		(YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) = @year
+			OR		YEAR(CONVERT(DATETIME, mct.ClosedDate AT TIME ZONE 'Eastern Standard Time')) = @closedYear);";
         public static readonly string SelectIntoTblMemberInsuranceMax = @"
             SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,
@@ -95,6 +96,7 @@
 				allCases.CaseTopic,
 				allCases.CaseType,
 				allCases.CaseTicketData,
+				allCases.AssignedTo,
 				ri.WalletValue,
 				allCases.DenialReason,
 				ra.ApprovedTotalAmount,

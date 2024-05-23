@@ -80,6 +80,7 @@ namespace CardServicesProcessor
                     parameters.Add("@addressTypeCode", "PERM");
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@year", 2024);
+                    parameters.Add("@closedYear", 2024);
                     parameters.Add("@isProcessEligible", 1);
                     response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log, parameters);
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
