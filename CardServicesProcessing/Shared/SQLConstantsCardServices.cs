@@ -54,8 +54,9 @@
 			AND		mc.IsActive = @isActive
 			AND		addr.AddressTypeCode = @addressTypeCode
 			--AND		mct.CaseTopicID = @caseTopicId
-			AND		(YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) = @year
-			OR		YEAR(CONVERT(DATETIME, mct.ClosedDate AT TIME ZONE 'Eastern Standard Time')) = @closedYear);";
+			--AND		ic.InsuranceCarrierId = 444
+			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) in (@year)
+			--OR		YEAR(CONVERT(DATETIME, mct.ClosedDate AT TIME ZONE 'Eastern Standard Time')) = @closedYear);";
         public static readonly string SelectIntoTblMemberInsuranceMax = @"
             SELECT		MAX(mi.CreateDate) AS CreateDate,
 						mi.MemberID,

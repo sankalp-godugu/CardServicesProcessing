@@ -32,6 +32,7 @@ namespace CardServicesProcessor.Services
                 // Add columns to the DataTable
                 foreach (string? header in headers)
                 {
+                    if (!dataTable.Columns.Contains(header))
                     _ = dataTable.Columns.Add(header);
                 }
 
@@ -189,6 +190,14 @@ namespace CardServicesProcessor.Services
                 case "NBCM202400091233-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
                     dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.IneligibleService);
+                    break;
+                case "NBCM202400095624-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 4.95.ToString("C2"));
+                    break;
+                case "NBCM202400096225-1":
+                    dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 0.ToString("C2"));
+                    dataRow.FormatForExcel(ColumnNames.ApprovedStatus, Statuses.Declined);
+                    dataRow.FormatForExcel(ColumnNames.DenialReason, Constants.Duplicate);
                     break;
                 case "EHCM202400074748-1":
                     dataRow.FormatForExcel(ColumnNames.ApprovedTotalReimbursementAmount, 351.41.ToString("C2"));

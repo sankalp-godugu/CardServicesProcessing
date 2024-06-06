@@ -324,6 +324,7 @@ namespace CardServicesProcessor.Services
                     {
                         foreach (IXLCell cell in row.CellsUsed())
                         {
+                            if (!dataTable.Columns.Contains(cell.Value.ToString()))
                             _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
                         }
                         isFirstRow = false;
@@ -461,6 +462,8 @@ namespace CardServicesProcessor.Services
 
         public static void RemoveDuplicates(DataTable table, string columnName)
         {
+            if (table.Rows.Count == 0) { return; }
+
             // Group rows by the specified column and select only the first row from each group
             var uniqueRows = table.AsEnumerable()
                                   .GroupBy(row => row.Field<string>(columnName))

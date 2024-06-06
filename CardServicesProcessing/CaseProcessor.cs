@@ -80,7 +80,9 @@ namespace CardServicesProcessor
                     parameters.Add("@addressTypeCode", "PERM");
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@year", 2024);
+                    parameters.Add("@year2", 2023);
                     parameters.Add("@closedYear", 2024);
+                    parameters.Add("@carrierName", "Select Health");
                     parameters.Add("@isProcessEligible", 1);
                     response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log, parameters);
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
@@ -94,11 +96,11 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
-                sw.Restart();
-                DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
-                sw.Stop();
-                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
+                //sw.Restart();
+                //DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
+                //sw.Stop();
+                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
                 //sw.Restart();
