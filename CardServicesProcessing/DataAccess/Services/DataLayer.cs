@@ -20,32 +20,31 @@ namespace CardServicesProcessor.DataAccess.Services
             log.LogInformation($"Started calling stored procedure {procedureName} with parameters: {string.Join(", ", parameters.Select(p => $"{p.Key} = {p.Value}"))}");
             List<T> list = [];
 
-            using (SqlConnection sqlConnection = new(connectionString))
+            using SqlConnection sqlConnection = new(connectionString);
+
+            await sqlConnection.OpenAsync();
+
+            try
             {
-                await sqlConnection.OpenAsync();
-
-                try
+                using SqlCommand sqlCommand = new()
                 {
-                    using SqlCommand sqlCommand = new()
-                    {
-                        CommandTimeout = GetSqlCommandTimeout(log),
-                        Connection = sqlConnection,
-                        CommandType = CommandType.StoredProcedure,
-                        CommandText = procedureName
-                    };
+                    CommandTimeout = GetSqlCommandTimeout(log),
+                    Connection = sqlConnection,
+                    CommandType = CommandType.StoredProcedure,
+                    CommandText = procedureName
+                };
 
-                    if (parameters.Count > 0)
-                    {
-                        sqlCommand.Parameters.AddRange([.. GetSqlParameters(parameters)]);
-                    }
-
-                    SqlDataReader dataReader = await sqlCommand.ExecuteReaderAsync();
-                    list = DataReaderMapToList<T>(dataReader, log);
-                }
-                catch (Exception ex)
+                if (parameters.Count > 0)
                 {
-                    log.LogInformation($"{procedureName} failed with exception: {ex.Message}");
+                    sqlCommand.Parameters.AddRange([.. GetSqlParameters(parameters)]);
                 }
+
+                SqlDataReader dataReader = await sqlCommand.ExecuteReaderAsync();
+                list = DataReaderMapToList<T>(dataReader, log);
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation($"{procedureName} failed with exception: {ex.Message}");
             }
 
             log.LogInformation($"Ended calling stored procedure {procedureName}");

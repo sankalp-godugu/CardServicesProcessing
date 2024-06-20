@@ -30,15 +30,15 @@ namespace CardServicesProcessor.Utilities.Constants
                     string.Equals(sourceWord, value, StringComparison.OrdinalIgnoreCase)));
         }
 
-        public static DateTime? ParseAndConvertDateTime(this string? utcDateTimeString, string columnName)
+        public static DateTime? ParseDateTime(this string? estDateTimeString)
         {
-            if (DateTime.TryParse(utcDateTimeString, out DateTime utcDateTime))
+            if (DateTime.TryParse(estDateTimeString, out DateTime estDateTime))
             {
                 // Get the Eastern Standard Time (EST) time zone
-                TimeZoneInfo estTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                //TimeZoneInfo estTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
 
                 // Convert the UTC DateTime to EST
-                DateTime estDateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, estTimeZone);
+                //DateTime estDateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, estTimeZone);
 
                 return estDateTime;
             }

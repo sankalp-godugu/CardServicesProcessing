@@ -128,7 +128,7 @@ namespace CardServicesProcessor
 
                 log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
-                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetIndex);
+                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetIndex, log);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }

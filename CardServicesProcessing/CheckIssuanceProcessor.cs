@@ -31,11 +31,7 @@ namespace CardServicesProcessor
                         }
                     ];
 
-                    // TODO: remove infinite loop, only here to test updates rapidly by caching data
-                    while (true)
-                    {
-                        await ProcessReports(config, dataLayer, log, reportInfo);
-                    }
+                    await ProcessReports(config, dataLayer, log, reportInfo);
 
                     log.LogInformation($"Opening the Excel file at {CheckIssuanceConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -72,6 +68,7 @@ namespace CardServicesProcessor
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@approvedStatus", "Approved");
                     parameters.Add("@fromDate", DateTime.Now.AddDays(-7).Date);
+                    parameters.Add("@isCheckSent", 0);
                     dataCurr = await dataLayer.QueryMultipleAsyncCustom<CheckIssuance>(conn, log, parameters);
                     _ = CacheManager.Cache.Set($"{report.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
                 }

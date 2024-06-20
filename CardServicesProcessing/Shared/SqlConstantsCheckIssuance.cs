@@ -25,15 +25,18 @@
 	            JSON_VALUE(bm.ClientResData, '$.PurseSlot') AS PurseSlot,
 	            JSON_VALUE(bm.ClientResData, '$.TxnAmount') AS AmountDeductedFromMember,
 	            CONVERT(VARCHAR, bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time', 110) AS RequestDate
-	            INTO #ReimbursementPayments
-	            FROM ServiceRequest.MemberCaseTickets mct
-	            JOIN ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
-	            JOIN PaymentGateway.BenefitManagement bm WITH(NOLOCK) ON bm.NHMemberID=mc.NHMemberID AND bm.TxnGroupReferenceID = mc.CaseNumber
-	            WHERE CaseTopicID = @caseTopicId
-	            AND CaseTicketStatusID IN (9,3)
-	            AND ApprovedStatus = @approvedStatus
-	            AND cast(bm.TxnResponseDate as date) > @fromDate);
-				--AND mct.CaseNumber NOT IN ('');";
+	        INTO	#ReimbursementPayments
+	        FROM	ServiceRequest.MemberCaseTickets mct
+	        JOIN	ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
+	        JOIN	PaymentGateway.BenefitManagement bm WITH(NOLOCK)
+						ON bm.NHMemberID=mc.NHMemberID
+						AND bm.TxnGroupReferenceID = mc.CaseNumber
+	        WHERE	CaseTopicID = @caseTopicId
+	        AND		CaseTicketStatusID IN (9,3)
+	        AND		ApprovedStatus = @approvedStatus
+	        AND		cast(bm.TxnResponseDate as date) > @fromDate);
+			--AND	mct.CaseNumber NOT IN ('')
+			--AND	IsCheckSent = 0;";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @"
             SELECT DISTINCT
 	c.NHMemberID, 

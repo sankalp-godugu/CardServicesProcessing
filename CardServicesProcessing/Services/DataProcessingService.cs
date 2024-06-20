@@ -107,10 +107,10 @@ namespace CardServicesProcessor.Services
                         string? healthPlan = cssCase.HealthPlanName?.Trim();
                         string? caseTicketNbr = cssCase.CaseTicketNumber?.Trim();
                         string? caseCategory = cssCase.CaseCategory?.Trim() == "Case" ? "Card Services" : "Unknown";
-                        DateTime? createDate = cssCase.CreateDate?.ParseAndConvertDateTime(ColumnNames.CreateDate);
+                        DateTime? createDate = cssCase.CreateDate?.ParseDateTime();
                         string? firstName = cssCase.FirstName?.ToPascalCase().Trim();
                         string? lastName = cssCase.LastName?.ToPascalCase().Trim();
-                        DateTime? dob = cssCase.DateOfBirth?.ParseAndConvertDateTime(ColumnNames.DateOfBirth);
+                        DateTime? dob = cssCase.DateOfBirth?.ParseDateTime();
                         string? city = cssCase.City?.Trim();
                         string? state = cssCase.State?.Trim();
                         string? nhMemberId = cssCase.NhMemberId?.Trim();
@@ -123,7 +123,7 @@ namespace CardServicesProcessor.Services
                         decimal? totalApprovedAmount = cssCase.ApprovedTotalAmount?.ParseAmount(ColumnNames.ApprovedTotalReimbursementAmount);
                         string? caseStatus = cssCase.CaseStatus?.Trim();
                         string? approvedStatus = cssCase.ApprovedStatus?.Trim();
-                        DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseAndConvertDateTime(ColumnNames.ProcessedDate);
+                        DateTime? processedDate = cssCase.ProcessedDate?.Trim().ParseDateTime();
                         string? closingComments = cssCase.ClosingComments?.Trim();
                         string? assignedTo = cssCase.AssignedTo?.Trim();
 
@@ -304,40 +304,38 @@ namespace CardServicesProcessor.Services
             DataTable dataTable = new();
 
             // Load the Excel file
-            using (XLWorkbook workbook = new(filePath))
+            using XLWorkbook workbook = new(filePath);
+            IXLWorksheet combinedWorksheet = ExcelService.CreateWorksheet(workbook, "2023 reimbursements - All");
+
+            foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023", "2023 Reimbursements-complet", "Submitted", "Manual Adjustments")))
             {
-                IXLWorksheet combinedWorksheet = ExcelService.CreateWorksheet(workbook, "2023 reimbursements - All");
+                ExcelService.CopyWorksheetData(worksheet, combinedWorksheet, startRow: combinedWorksheet.LastRowUsed()?.RowNumber() + 1 ?? 1);
+            }
 
-                foreach (IXLWorksheet? worksheet in workbook.Worksheets.Where(worksheet => worksheet.Name.ContainsAny("BCBSRI 2023", "2023 Reimbursements-complet", "Submitted", "Manual Adjustments")))
+            // Assume the first row contains column headers
+            bool isFirstRow = true;
+
+            // Iterate over each row in the worksheet
+            foreach (IXLRow row in combinedWorksheet.RowsUsed())
+            {
+                // If it's the first row, add column headers to the DataTable
+                if (isFirstRow)
                 {
-                    ExcelService.CopyWorksheetData(worksheet, combinedWorksheet, startRow: combinedWorksheet.LastRowUsed()?.RowNumber() + 1 ?? 1);
-                }
-
-                // Assume the first row contains column headers
-                bool isFirstRow = true;
-
-                // Iterate over each row in the worksheet
-                foreach (IXLRow row in combinedWorksheet.RowsUsed())
-                {
-                    // If it's the first row, add column headers to the DataTable
-                    if (isFirstRow)
+                    foreach (IXLCell cell in row.CellsUsed())
                     {
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            if (!dataTable.Columns.Contains(cell.Value.ToString()))
-                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
-                        }
-                        isFirstRow = false;
+                        if (!dataTable.Columns.Contains(cell.Value.ToString()))
+                        _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
                     }
-                    else
+                    isFirstRow = false;
+                }
+                else
+                {
+                    // Add data rows to the DataTable
+                    DataRow newRow = dataTable.Rows.Add();
+                    int columnIndex = 0;
+                    foreach (IXLCell cell in row.CellsUsed())
                     {
-                        // Add data rows to the DataTable
-                        DataRow newRow = dataTable.Rows.Add();
-                        int columnIndex = 0;
-                        foreach (IXLCell cell in row.CellsUsed())
-                        {
-                            newRow[columnIndex++] = cell.Value.ToString().Trim();
-                        }
+                        newRow[columnIndex++] = cell.Value.ToString().Trim();
                     }
                 }
             }
@@ -449,8 +447,7 @@ namespace CardServicesProcessor.Services
                             break;
                         }
                     }
-                    if (matchedWallet == null)
-                    { }
+                    matchedWallet ??= Wallet.OTC; // temp replace NULL wallets with OTC
                     dataRow.FormatForExcel(ColumnNames.Wallet, Wallet.GetWalletNameFromBenefitDesc(matchedWallet));
                 };
             }

@@ -111,15 +111,5 @@
 		JOIN		master.MemberInsuranceDetails mid ON mi.ID = mid.MemberInsuranceID
 		LEFT JOIN	ServiceRequest.ReimbursementItems ri ON allCases.CaseTicketId = ri.CaseTicketID AND ri.IsProcessEligible = @isProcessEligible
 		LEFT JOIN	#ReimbursementAmount ra ON allCases.CaseTicketID = ra.CaseTicketID;";
-        public static readonly List<Tuple<string, string>> QueryToNameMap =
-        [
-            new(DropTblAllCases, nameof(DropTblAllCases)),
-            new(DropTblMemberInsuranceMax, nameof(DropTblMemberInsuranceMax)),
-            new(DropTblReimbursementAmount, nameof(DropTblReimbursementAmount)),
-            new(SelectIntoTblAllCases, nameof(SelectIntoTblAllCases)),
-            new(SelectIntoTblMemberInsuranceMax, nameof(SelectIntoTblMemberInsuranceMax)),
-            new(SelectIntoTblReimbursementAmount, nameof(SelectIntoTblReimbursementAmount)),
-            new(SelectFromTblCases, nameof(SelectFromTblCases))
-        ];
     }
 }

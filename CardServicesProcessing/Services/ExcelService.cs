@@ -22,29 +22,27 @@ namespace CardServicesProcessor.Services
         {
             DataTable dataTable = new();
 
-            using (XLWorkbook workbook = new(filePath))
+            using XLWorkbook workbook = new(filePath);
+            IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
+
+            // Get the headers from the first row
+            List<string> headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
+
+            // Add columns to the DataTable
+            foreach (string? header in headers)
             {
-                IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
+                if (!dataTable.Columns.Contains(header))
+                _ = dataTable.Columns.Add(header);
+            }
 
-                // Get the headers from the first row
-                List<string> headers = worksheet.FirstRow().CellsUsed().Select(cell => cell.Value.ToString().Trim()).ToList();
-
-                // Add columns to the DataTable
-                foreach (string? header in headers)
+            // Add rows to the DataTable
+            IEnumerable<IXLRow> rows = worksheet.RowsUsed().Skip(1);
+            foreach (IXLRow? row in rows)
+            {
+                DataRow dataRow = dataTable.Rows.Add();
+                for (int i = 0; i < headers.Count; i++)
                 {
-                    if (!dataTable.Columns.Contains(header))
-                    _ = dataTable.Columns.Add(header);
-                }
-
-                // Add rows to the DataTable
-                IEnumerable<IXLRow> rows = worksheet.RowsUsed().Skip(1);
-                foreach (IXLRow? row in rows)
-                {
-                    DataRow dataRow = dataTable.Rows.Add();
-                    for (int i = 0; i < headers.Count; i++)
-                    {
-                        dataRow[i] = row.Cell(i + 1).Value.ToString().Trim();
-                    }
+                    dataRow[i] = row.Cell(i + 1).Value.ToString().Trim();
                 }
             }
 
@@ -212,40 +210,48 @@ namespace CardServicesProcessor.Services
         /// <param name="filePath"></param>
         /// <param name="sheetName"></param>
         /// <param name="sheetPos"></param>
-        public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos)
+        public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos, ILogger log)
         {
             // Check if the worksheet exists
             //DeleteWorkbook(filePath);
 
-            XLWorkbook workbook = CreateWorkbook(filePath);
+            try
+            {
 
-            // Add a new worksheet with the same name
-            IXLWorksheet worksheet = ClearWorksheet(workbook, sheetName, sheetPos);
-            //IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName, sheetPos).SetTabColor(XLColor.Yellow);
+                XLWorkbook workbook = CreateWorkbook(filePath);
 
-            // Remove empty columns after the specified index
-            RemoveEmptyColumns(dataTable, ColumnNames.AssignedTo);
+                // Add a new worksheet with the same name
+                IXLWorksheet worksheet = ClearWorksheet(workbook, sheetName, sheetPos);
+                //IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName, sheetPos).SetTabColor(XLColor.Yellow);
 
-            // Insert DataTable into the worksheet
-            _ = worksheet.Cell(1, 1).InsertTable(dataTable, false);
+                // Remove empty columns after the specified index
+                RemoveEmptyColumns(dataTable, ColumnNames.ClosingComments);
 
-            // Format header row
-            FormatHeaderRow(worksheet.Row(1));
+                // Insert DataTable into the worksheet
+                _ = worksheet.Cell(1, 1).InsertTable(dataTable, false);
 
-            // Freeze header row
-            FreezeHeaderRow(worksheet);
+                // Format header row
+                FormatHeaderRow(worksheet.Row(1));
 
-            // Set number formats for specific columns
-            SetNumberFormats(worksheet);
+                // Freeze header row
+                FreezeHeaderRow(worksheet);
 
-            // Set column widths
-            SetColumnWidths(worksheet);
+                // Set number formats for specific columns
+                SetNumberFormats(worksheet);
 
-            // Apply filters to specific columns
-            //ApplyFilters(worksheet, 14, "Reimbursement");
-            //ApplyFilters(worksheet, 5, "2024");
+                // Set column widths
+                SetColumnWidths(worksheet);
 
-            SaveWorkbook(filePath, workbook);
+                // Apply filters to specific columns
+                ApplyFilters(worksheet, 14, "Reimbursement");
+                ApplyFilters(worksheet, 5, "2024");
+
+                SaveWorkbook(filePath, workbook);
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation("Error filtering and saving to excel: ", ex.Message);
+            }
         }
 
         private static IXLWorksheet ClearWorksheet(XLWorkbook workbook, string sheetName, int sheetPos)
@@ -341,8 +347,8 @@ namespace CardServicesProcessor.Services
 
         private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria)
         {
-            
-            _ = worksheet.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
+            // Apply the filter to the specific column with the given criteria
+            worksheet.RangeUsed().SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)
@@ -411,44 +417,6 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        public static T ReadFromExcel<T>(string filePath) where T : new()
-        {
-            T result = new();
-
-            using (XLWorkbook workbook = new(filePath))
-            {
-                if (result is CheckIssuance checkIssuance)
-                {
-                    checkIssuance.RawData = ReadSheet<RawData>(workbook, "RawData");
-                    checkIssuance.MemberMailingInfos = ReadSheet<MemberMailingInfo>(workbook, "MemberMailingInfo");
-                    checkIssuance.MemberCheckReimbursements = ReadSheet<MemberCheckReimbursement>(workbook, "MemberCheckReimbursement");
-                }
-                // Add more conditions for other types if necessary
-            }
-
-            return result;
-        }
-
-        private static List<TItem> ReadSheet<TItem>(XLWorkbook workbook, string sheetName) where TItem : new()
-        {
-            List<TItem> result = [];
-            IXLWorksheet? worksheet = workbook.Worksheets.FirstOrDefault(ws => ws.Name == sheetName);
-
-            if (worksheet != null)
-            {
-                foreach (IXLRow? row in worksheet.RowsUsed())
-                {
-                    TItem item = new();
-                    // Implement your mapping logic here based on the structure of TItem
-                    // Populate item properties with cell values from the row
-                    // Example: item.Property1 = row.Cell(1).Value;
-                    result.Add(item);
-                }
-            }
-
-            return result;
-        }
-
         public static void AddToExcel<T>(T data) where T : CheckIssuance
         {
             DataTable rawData = data.RawData.ToDataTable();
@@ -491,16 +459,6 @@ namespace CardServicesProcessor.Services
             _ = worksheet.Tables.FirstOrDefault();
 
             InsertIntoExcelWithComparison(dt, worksheet, dtPrev);
-
-            /*if (existingTable == null)
-            {
-                // If the table doesn't exist, then insert it
-                _ = worksheet.Cell(startRow, 1).InsertTable(dt);
-            }
-            else
-            {
-                _ = worksheet.Cell(existingTable.RangeAddress.LastAddress.RowNumber + 1, 1).InsertTable(dt);
-            }*/
         }
 
         public static IXLWorksheet CreateWorksheet(XLWorkbook workbook, string sheetName, int sheetPos = 1)
@@ -572,29 +530,28 @@ namespace CardServicesProcessor.Services
         public static void WriteToExcel(DataTable dt, string filePath)
         {
             // Create a new Excel workbook
-            using (XLWorkbook wb = new())
+            using XLWorkbook wb = new();
+            
+            // Add a worksheet to the workbook
+            IXLWorksheet ws = wb.Worksheets.Add("Sheet1");
+
+            // Write DataTable headers to the first row of the worksheet
+            for (int i = 0; i < dt.Columns.Count; i++)
             {
-                // Add a worksheet to the workbook
-                IXLWorksheet ws = wb.Worksheets.Add("Sheet1");
-
-                // Write DataTable headers to the first row of the worksheet
-                for (int i = 0; i < dt.Columns.Count; i++)
-                {
-                    ws.Cell(1, i + 1).Value = dt.Columns[i].ColumnName;
-                }
-
-                // Write DataTable data to the worksheet
-                for (int i = 0; i < dt.Rows.Count; i++)
-                {
-                    for (int j = 0; j < dt.Columns.Count; j++)
-                    {
-                        ws.Cell(i + 2, j + 1).Value = dt.Rows[i][j].ToString();
-                    }
-                }
-
-                // Save the workbook
-                wb.SaveAs(filePath);
+                ws.Cell(1, i + 1).Value = dt.Columns[i].ColumnName;
             }
+
+            // Write DataTable data to the worksheet
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                for (int j = 0; j < dt.Columns.Count; j++)
+                {
+                    ws.Cell(i + 2, j + 1).Value = dt.Rows[i][j].ToString();
+                }
+            }
+
+            // Save the workbook
+            wb.SaveAs(filePath);
 
             Console.WriteLine("Excel file with DataTable has been created.");
         }
