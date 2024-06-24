@@ -128,7 +128,7 @@ namespace CardServicesProcessor
             {
                 EnableSsl = true,
                 Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                Timeout = EmailConstants.Timeout
+                Timeout = LimitConstants.Timeout
             };
 
             string body = GetBody();
