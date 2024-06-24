@@ -29,19 +29,15 @@ namespace CardServicesProcessor
                         {
                             SheetName = CardServicesConstants.Elevance.SheetName,
                             SheetPrev = CardServicesConstants.Elevance.SheetPrev,
-                            SheetRaw = CardServicesConstants.Elevance.SheetRaw,
-                            SheetDraft = CardServicesConstants.Elevance.SheetDraft,
-                            SheetFinal = CardServicesConstants.Elevance.SheetFinal,
-                            SheetIndex = CardServicesConstants.Elevance.SheetFinalIndex
+                            SheetCurr = CardServicesConstants.Elevance.SheetCurr,
+                            SheetIndex = CardServicesConstants.Elevance.SheetIndex
                         },
                         new()
                         {
                             SheetName = CardServicesConstants.Nations.SheetName,
                             SheetPrev = CardServicesConstants.Nations.SheetPrev,
-                            SheetRaw = CardServicesConstants.Nations.SheetRaw,
-                            SheetDraft = CardServicesConstants.Nations.SheetDraft,
-                            SheetFinal = CardServicesConstants.Nations.SheetFinal,
-                            SheetIndex = CardServicesConstants.Nations.SheetFinalIndex
+                            SheetCurr = CardServicesConstants.Nations.SheetCurr,
+                            SheetIndex = CardServicesConstants.Nations.SheetIndex
                         }
                     ];
 
@@ -53,7 +49,7 @@ namespace CardServicesProcessor
                     sw.Stop();
                     log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                    log.LogInformation($"Sending Email to Operations...");
+                    log.LogInformation($"Building Email...");
                     sw.Restart();
                     SendEmail(log);
                     sw.Stop();
@@ -136,7 +132,7 @@ namespace CardServicesProcessor
 
                 log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
                 sw.Restart();
-                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetFinal, settings.SheetIndex, log);
+                ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetCurr, settings.SheetIndex, log);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
@@ -148,7 +144,7 @@ namespace CardServicesProcessor
             int smtpPort = int.Parse(Environment.GetEnvironmentVariable("smtpPort"));
             string smtpUsername = Environment.GetEnvironmentVariable("smtpUsername");
             string smtpPassword = Environment.GetEnvironmentVariable("smtpPassword");
-            string fromAddress = EmailConstants.SankalpGodugu;
+            string fromAddress = EmailConstants.DoNotReply;
             string toAddress = EmailConstants.SankalpGodugu;// EmailConstants.DavidDandridge;
             string subject = CardServicesConstants.Subject;
 
@@ -165,12 +161,11 @@ namespace CardServicesProcessor
             {
                 IsBodyHtml = false
             };
-            //message.CC.Add(EmailConstants.MichaelDucker);
             //message.CC.Add(EmailConstants.DaveDandridge);
             //message.CC.Add(EmailConstants.MargaretAnnTapia);
-            //message.CC.Add(EmailConstants.VijayanRayan);
+            //message.CC.Add(EmailConstants.AustinStephens);
 
-            Attachment attachment = new(CheckIssuanceConstants.FilePathCurr);
+            Attachment attachment = new(CardServicesConstants.FilePathCurr);
             message.Attachments.Add(attachment);
 
             int numAttempts = 0;
@@ -178,7 +173,7 @@ namespace CardServicesProcessor
             {
                 try
                 {
-                    log.LogInformation($"Sending email to Client Services...");
+                    log.LogInformation($"Sending email to Operations...");
                     client.Send(message);
                     log.LogInformation("Email sent successfully.");
                     break;
@@ -222,9 +217,7 @@ namespace CardServicesProcessor
         {
             public required string SheetName { get; set; }
             public required string SheetPrev { get; set; }
-            public required string SheetRaw { get; set; }
-            public required string SheetDraft { get; set; }
-            public required string SheetFinal { get; set; }
+            public required string SheetCurr { get; set; }
             public int SheetIndex { get; set; }
         }
 

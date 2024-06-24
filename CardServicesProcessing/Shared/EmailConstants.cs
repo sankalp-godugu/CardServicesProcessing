@@ -9,6 +9,7 @@
         public static string MargaretAnnTapia = "mtapia@nationsbenefits.com";
         public static string VijayanRayan = "vrayan@nationsbenefits.com";
         public static string SankalpGodugu = "sankalp.godugu@nationsbenefits.com";
+        public static string DoNotReply = "donotreply_zendesk@nationsbenefits.com";
 
         public static int Timeout = 10000;
     }

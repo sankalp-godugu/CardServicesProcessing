@@ -41,7 +41,7 @@ namespace CardServicesProcessor
                     sw.Stop();
                     log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                    log.LogInformation($"Sending Email to Finance...");
+                    log.LogInformation($"Started Building Email...");
                     sw.Restart();
                     SendEmail(log);
                     sw.Stop();
@@ -120,7 +120,7 @@ namespace CardServicesProcessor
             int smtpPort = int.Parse(Environment.GetEnvironmentVariable("smtpPort"));
             string smtpUsername = Environment.GetEnvironmentVariable("smtpUsername");
             string smtpPassword = Environment.GetEnvironmentVariable("smtpPassword");
-            string fromAddress = EmailConstants.SankalpGodugu;
+            string fromAddress = EmailConstants.DoNotReply;
             string toAddress = EmailConstants.SankalpGodugu;// EmailConstants.XiaosenSun;
             string subject = CheckIssuanceConstants.Subject;
 
@@ -150,7 +150,7 @@ namespace CardServicesProcessor
             {
                 try
                 {
-                    log.LogInformation($"Sending email to Client Services...");
+                    log.LogInformation($"Sending email to Finance...");
                     client.Send(message);
                     log.LogInformation("Email sent successfully.");
                     break;

@@ -4,9 +4,7 @@ namespace CardServicesProcessor.Shared
 {
     public static class CheckIssuanceConstants
     {
-
-        public static string Subject = @"Reimbursement Check Request File";
-        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\_Automation\ReimbursementCheckIssuance_{DateTime.Today:MMddyyyy}.xlsx";
+        public static readonly string FilePathCurr = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today:MMddyyyy}\ReimbursementCheckIssuance_{DateTime.Today:MMddyyyy}.xlsx";
 
         public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today.AddDays(-7):M-dd}\ReimbursementCheckIssuance_{DateTime.Today.AddDays(-7):MMddyyyy}.xlsx";
 
@@ -32,20 +30,18 @@ namespace CardServicesProcessor.Shared
         {
             public static string SheetName => typeof(Nations).Name;
             public static string SheetPrev => "Nations Reimbursements";
-            public static string SheetRaw => "NB - Raw";
-            public static string SheetDraft => "NB - Draft";
-            public static string SheetFinal => "NB - Final";
-            public static int SheetDraftIndex => 5;
+            public static string SheetCurr => "Nations";
+            public static int SheetIndex => 1;
         }
 
         public static class Elevance
         {
             public static string SheetName => typeof(Elevance).Name;
             public static string SheetPrev => "Elevance Reimbursements";
-            public static string SheetRaw => "ELV - Raw";
-            public static string SheetDraft => "ELV - Draft";
-            public static string SheetFinal => "ELV - Final";
-            public static int SheetDraftIndex => 2;
+            public static string SheetCurr => "Elevance";
+            public static int SheetIndex => 2;
         }
+
+        public const string Subject = "Reimbursement Check Issuance";
     }
 }
