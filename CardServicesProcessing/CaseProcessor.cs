@@ -215,9 +215,9 @@ namespace CardServicesProcessor
 
         private class Report
         {
-            public required string SheetName { get; set; }
-            public required string SheetPrev { get; set; }
-            public required string SheetCurr { get; set; }
+            public string SheetName { get; set; }
+            public string SheetPrev { get; set; }
+            public string SheetCurr { get; set; }
             public int SheetIndex { get; set; }
         }
 

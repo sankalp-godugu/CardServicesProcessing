@@ -110,7 +110,7 @@ namespace CardServicesProcessor
 
         private class Report
         {
-            public required string SheetName { get; set; }
+            public string? SheetName { get; set; }
             public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.SheetIndexToNameMap;
         }
 

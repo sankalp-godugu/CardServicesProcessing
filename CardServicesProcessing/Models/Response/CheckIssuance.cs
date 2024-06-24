@@ -2,8 +2,8 @@
 {
     public class CheckIssuance
     {
-        public required IEnumerable<RawData> RawData { get; set; }
-        public required IEnumerable<MemberMailingInfo> MemberMailingInfos { get; set; }
-        public required IEnumerable<MemberCheckReimbursement> MemberCheckReimbursements { get; set; }
+        public IEnumerable<RawData> RawData { get; set; }
+        public IEnumerable<MemberMailingInfo> MemberMailingInfos { get; set; }
+        public IEnumerable<MemberCheckReimbursement> MemberCheckReimbursements { get; set; }
     }
 }
