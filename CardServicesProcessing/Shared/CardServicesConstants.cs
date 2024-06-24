@@ -12,6 +12,8 @@
 
         public static readonly string TestFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\TestPurposesOnly.xlsx";
 
+        public static string Subject = @"YTD Card Services Report";
+
         public static class Elevance
         {
             public static readonly string SheetName = typeof(Elevance).Name;

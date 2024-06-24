@@ -9,6 +9,8 @@
         public static readonly string DropReimbursementAddress3 = @"DROP TABLE IF EXISTS #ReimbursementAddress3;";
         public static readonly string DropTempFinal = @"DROP TABLE IF EXISTS #TempFinal;";
         public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS #ReimbursementFinal;";
+        public static readonly string DropMemberMailingInfo = @"DROP TABLE IF EXISTS #MemberMailingInfo;";
+        public static readonly string DropMemberCheckReimbursement = @"DROP TABLE IF EXISTS #MemberCheckReimbursement;";
         public static readonly string SelectIntoReimbursementPayments = @"
             SELECT
 	            mc.NHMemberID,
@@ -34,7 +36,8 @@
 	        WHERE	CaseTopicID = @caseTopicId
 	        AND		CaseTicketStatusID IN (9,3)
 	        AND		ApprovedStatus = @approvedStatus
-	        AND		cast(bm.TxnResponseDate as date) > @fromDate);
+			AND		TransactionStatus = @transactionStatus
+	        AND		bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' > @fromDate;
 			--AND	mct.CaseNumber NOT IN ('')
 			--AND	IsCheckSent = 0;";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @"

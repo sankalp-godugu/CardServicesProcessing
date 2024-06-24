@@ -348,7 +348,7 @@ namespace CardServicesProcessor.Services
         private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria)
         {
             // Apply the filter to the specific column with the given criteria
-            worksheet.RangeUsed().SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
+            worksheet.RangeUsed()?.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)

@@ -157,16 +157,16 @@ namespace CardServicesProcessor.Services
                         // approved status -------------------
                         if (closingComments.IsTruthy())
                         {
-                            if (approvedStatus == Statuses.Approved
-                                && closingComments.ContainsAny(Variations.DeclinedVariations))
-                            {
-                                approvedStatus = Statuses.Declined;
-                            }
                             if (approvedStatus == Statuses.Declined
                                 && closingComments.ContainsAny(Variations.ApprovedVariations)
                                 && !closingComments.ContainsAny(["Duplicate"]))
                             {
                                 approvedStatus = Statuses.Approved;
+                            }
+                            if (approvedStatus == Statuses.Approved
+                                && closingComments.ContainsAny(Variations.DeclinedVariations))
+                            {
+                                approvedStatus = Statuses.Declined;
                             }
                         }
 

@@ -62,11 +62,11 @@ namespace CardServicesProcessor.DataAccess.Services
             return result;
         }
 
-        public async Task<IEnumerable<T>> QueryAsyncCustom<T>(string connectionString, ILogger log, DynamicParameters? parameters = null)
+        public async Task<IEnumerable<T>> QueryAsyncCSS<T>(string connectionString, ILogger log, DynamicParameters? parameters = null)
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
 
             try
             {
@@ -103,11 +103,11 @@ namespace CardServicesProcessor.DataAccess.Services
             }
         }
 
-        public async Task<CheckIssuance> QueryMultipleAsyncCustom<T>(string connectionString, ILogger log, DynamicParameters? parameters)
+        public async Task<CheckIssuance> QueryReimbursements<T>(string connectionString, ILogger log, DynamicParameters? parameters)
         {
             using SqlConnection connection = new(connectionString);
             await connection.OpenAsync();
-            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+            using SqlTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
 
             try
             {
@@ -117,6 +117,8 @@ namespace CardServicesProcessor.DataAccess.Services
                                     + SqlConstantsCheckIssuance.DropReimbursementAddress3
                                     + SqlConstantsCheckIssuance.DropTempFinal
                                     + SqlConstantsCheckIssuance.DropReimbursementFinal
+                                    + SqlConstantsCheckIssuance.DropMemberMailingInfo
+                                    + SqlConstantsCheckIssuance.DropMemberCheckReimbursement
                                     + SqlConstantsCheckIssuance.SelectIntoReimbursementPayments
                                     + connection.Database == Databases.Nations
                                         ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT

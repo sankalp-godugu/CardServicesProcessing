@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Mail;
 
 namespace CardServicesProcessor
 {
@@ -47,9 +49,16 @@ namespace CardServicesProcessor
 
                     log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
-                    ExcelService.OpenExcel(CardServicesConstants.FilePathCurr, log);
+                    //ExcelService.OpenExcel(CardServicesConstants.FilePathCurr, log);
                     sw.Stop();
                     log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
+                    log.LogInformation($"Sending Email to Operations...");
+                    sw.Restart();
+                    SendEmail(log);
+                    sw.Stop();
+                    log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
                 });
 
                 return new OkObjectResult("Reimbursement report processing completed successfully.");
@@ -79,12 +88,11 @@ namespace CardServicesProcessor
                     parameters.Add("@isActive", 1);
                     parameters.Add("@addressTypeCode", "PERM");
                     parameters.Add("@caseTopicId", 24);
-                    parameters.Add("@year", 2024);
-                    parameters.Add("@year2", 2023);
+                    parameters.Add("@createdYear", 2024);
                     parameters.Add("@closedYear", 2024);
                     parameters.Add("@carrierName", "Select Health");
                     parameters.Add("@isProcessEligible", 1);
-                    response = await dataLayer.QueryAsyncCustom<CardServicesResponse>(conn, log, parameters);
+                    response = await dataLayer.QueryAsyncCSS<CardServicesResponse>(conn, log, parameters);
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
                 sw.Stop();
@@ -132,6 +140,75 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
+        }
+
+        public static int SendEmail(ILogger log)
+        {
+            string smtpServer = Environment.GetEnvironmentVariable("smtpServer");
+            int smtpPort = int.Parse(Environment.GetEnvironmentVariable("smtpPort"));
+            string smtpUsername = Environment.GetEnvironmentVariable("smtpUsername");
+            string smtpPassword = Environment.GetEnvironmentVariable("smtpPassword");
+            string fromAddress = EmailConstants.SankalpGodugu;
+            string toAddress = EmailConstants.SankalpGodugu;// EmailConstants.DavidDandridge;
+            string subject = CardServicesConstants.Subject;
+
+            using SmtpClient client = new(smtpServer, smtpPort)
+            {
+                EnableSsl = true,
+                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                Timeout = EmailConstants.Timeout
+            };
+
+            string body = GetBody();
+
+            MailMessage message = new(fromAddress, toAddress, subject, body)
+            {
+                IsBodyHtml = false
+            };
+            //message.CC.Add(EmailConstants.MichaelDucker);
+            //message.CC.Add(EmailConstants.DaveDandridge);
+            //message.CC.Add(EmailConstants.MargaretAnnTapia);
+            //message.CC.Add(EmailConstants.VijayanRayan);
+
+            Attachment attachment = new(CheckIssuanceConstants.FilePathCurr);
+            message.Attachments.Add(attachment);
+
+            int numAttempts = 0;
+            while (numAttempts < LimitConstants.MaxAttempts)
+            {
+                try
+                {
+                    log.LogInformation($"Sending email to Client Services...");
+                    client.Send(message);
+                    log.LogInformation("Email sent successfully.");
+                    break;
+                }
+                catch (SmtpException)
+                {
+                    log.LogInformation($"Sending email timed out.");
+                }
+                catch (Exception ex)
+                {
+                    log.LogInformation($"Failed to send email: {ex.Message}");
+                }
+                numAttempts++;
+                Thread.Sleep(LimitConstants.SleepTime);
+            }
+
+            return 0;
+        }
+
+        public static string GetBody()
+        {
+            return @$"
+            Hi Dave,
+
+            Please see attached reimbursement report for this week:
+            {CardServicesConstants.FilePathCurr}
+
+            Kind regards,
+            Sankalp Godugu
+            ";
         }
 
         private static string GetConnectionString(IConfiguration config, string key)

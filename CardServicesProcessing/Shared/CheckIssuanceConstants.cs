@@ -4,7 +4,9 @@ namespace CardServicesProcessor.Shared
 {
     public static class CheckIssuanceConstants
     {
-        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\_Automation\ReimbursementCheckIssuanceAutomation_{DateTime.Today:MMddyyyy}.xlsx";
+
+        public static string Subject = @"Reimbursement Check Request File";
+        public static string FilePathCurr => @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\_Automation\ReimbursementCheckIssuance_{DateTime.Today:MMddyyyy}.xlsx";
 
         public static readonly string FilePathPrev = @$"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\Approved\{DateTime.Today.AddDays(-7):M-dd}\ReimbursementCheckIssuance_{DateTime.Today.AddDays(-7):MMddyyyy}.xlsx";
 
