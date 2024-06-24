@@ -32,7 +32,9 @@ namespace CardServicesProcessor.Services
             foreach (string? header in headers)
             {
                 if (!dataTable.Columns.Contains(header))
-                _ = dataTable.Columns.Add(header);
+                {
+                    _ = dataTable.Columns.Add(header);
+                }
             }
 
             // Add rows to the DataTable
@@ -265,7 +267,7 @@ namespace CardServicesProcessor.Services
             else
             {
                 // Clear existing data if the worksheet already exists
-                worksheet.AutoFilter.Clear();
+                _ = worksheet.AutoFilter.Clear();
                 _ = worksheet.Clear();
             }
 
@@ -348,7 +350,7 @@ namespace CardServicesProcessor.Services
         private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria)
         {
             // Apply the filter to the specific column with the given criteria
-            worksheet.RangeUsed()?.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria);
+            _ = (worksheet.RangeUsed()?.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria));
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)
@@ -396,7 +398,7 @@ namespace CardServicesProcessor.Services
             {
                 try
                 {
-                    Process.Start(startInfo);
+                    _ = Process.Start(startInfo);
                     log.LogInformation("Process started successfully.");
                     break; // Exit the loop if process starts successfully
                 }
@@ -531,7 +533,7 @@ namespace CardServicesProcessor.Services
         {
             // Create a new Excel workbook
             using XLWorkbook wb = new();
-            
+
             // Add a worksheet to the workbook
             IXLWorksheet ws = wb.Worksheets.Add("Sheet1");
 

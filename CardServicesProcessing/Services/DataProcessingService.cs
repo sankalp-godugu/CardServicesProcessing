@@ -324,7 +324,9 @@ namespace CardServicesProcessor.Services
                     foreach (IXLCell cell in row.CellsUsed())
                     {
                         if (!dataTable.Columns.Contains(cell.Value.ToString()))
-                        _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
+                        {
+                            _ = dataTable.Columns.Add(cell.Value.ToString().Trim());
+                        }
                     }
                     isFirstRow = false;
                 }
@@ -379,7 +381,7 @@ namespace CardServicesProcessor.Services
                     benefitWalletFromManualReport = benefitWalletFromManualReport.StripNumbers();
 
                     // Map the benefit description using dictionaries
-                    SetWalletName(row, benefitWalletFromManualReport);
+                    _ = SetWalletName(row, benefitWalletFromManualReport);
                 }
                 else
                 {
@@ -394,15 +396,10 @@ namespace CardServicesProcessor.Services
 
         private static string SetWalletName(DataRow row, string? benefitWalletFromManualReport)
         {
-            if (Wallet.zPurseToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out string? benefitDesc)
-                                    || Wallet.benefitTypeToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out benefitDesc))
-            {
-                row[ColumnNames.Wallet] = Wallet.GetWalletNameFromBenefitDesc(benefitDesc);
-            }
-            else
-            {
-                row[ColumnNames.Wallet] = Wallet.GetWalletNameFromBenefitDesc(benefitWalletFromManualReport);
-            }
+            row[ColumnNames.Wallet] = Wallet.zPurseToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out string? benefitDesc)
+                                    || Wallet.benefitTypeToBenefitDesc.TryGetValue(benefitWalletFromManualReport, out benefitDesc)
+                ? Wallet.GetWalletNameFromBenefitDesc(benefitDesc)
+                : (object?)Wallet.GetWalletNameFromBenefitDesc(benefitWalletFromManualReport);
             return row[ColumnNames.Wallet].ToString();
         }
 
@@ -420,7 +417,7 @@ namespace CardServicesProcessor.Services
                 }
 
                 //_ = Parallel.ForEach(dataTable.Rows.Cast<DataRow>(), dataRow =>
-                var rowsWithoutWallets = dataTable.AsEnumerable().Where(r =>
+                EnumerableRowCollection<DataRow> rowsWithoutWallets = dataTable.AsEnumerable().Where(r =>
                     r.Field<string>(ColumnNames.CaseTopic) == Constants.Reimbursement
                     && !r.Field<string>(ColumnNames.Wallet).IsTruthy());
 
@@ -462,7 +459,7 @@ namespace CardServicesProcessor.Services
             if (table.Rows.Count == 0) { return; }
 
             // Group rows by the specified column and select only the first row from each group
-            var uniqueRows = table.AsEnumerable()
+            DataTable uniqueRows = table.AsEnumerable()
                                   .GroupBy(row => row.Field<string>(columnName))
                                   .Select(group => group.First())
                                   .CopyToDataTable();

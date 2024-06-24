@@ -288,7 +288,7 @@ GROUP BY
 	RequestDate,
 	TxnID;";
         public static readonly string SelectRawData = @"SELECT * FROM #ReimbursementFinal ORDER BY NHMemberID;";
-		public static readonly string SelectMemberMailingInfo = @"SELECT * FROM #MemberMailingInfo ORDER BY CardholderFirstName;";
-		public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM #MemberCheckReimbursement ORDER BY VendorName;";
+        public static readonly string SelectMemberMailingInfo = @"SELECT * FROM #MemberMailingInfo ORDER BY CardholderFirstName;";
+        public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM #MemberCheckReimbursement ORDER BY VendorName;";
     }
 }

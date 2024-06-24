@@ -11,7 +11,7 @@
         public static readonly string UtilitiesTextFilePath = @"C:\Users\Sankalp.Godugu\source\repos\Other\CardServicesProcessing\CardServicesProcessing\Shared\ReimbursementItems\Utilities.txt";
         public static readonly string NotAvailableTextFilePath = @"C:\Users\Sankalp.Godugu\source\repos\Other\CardServicesProcessing\CardServicesProcessing\Shared\ReimbursementItems\NotAvailable.txt";
         public static readonly string UnknownTextFilePath = @"C:\Users\Sankalp.Godugu\source\repos\Other\CardServicesProcessing\CardServicesProcessing\Shared\ReimbursementItems\Unknown.txt";
-        
+
 
         // Preload text file contents
         public static readonly Dictionary<string, string> ReimbursementItemFilePaths = new()

@@ -27,21 +27,21 @@ namespace CardServicesProcessor
                     [
                         new()
                         {
-                            SheetName = CardServicesConstants.Elevance.SheetName,
-                            SheetPrev = CardServicesConstants.Elevance.SheetPrev,
-                            SheetCurr = CardServicesConstants.Elevance.SheetCurr,
-                            SheetIndex = CardServicesConstants.Elevance.SheetIndex
-                        },
-                        new()
-                        {
                             SheetName = CardServicesConstants.Nations.SheetName,
                             SheetPrev = CardServicesConstants.Nations.SheetPrev,
                             SheetCurr = CardServicesConstants.Nations.SheetCurr,
                             SheetIndex = CardServicesConstants.Nations.SheetIndex
+                        },
+                        new()
+                        {
+                            SheetName = CardServicesConstants.Elevance.SheetName,
+                            SheetPrev = CardServicesConstants.Elevance.SheetPrev,
+                            SheetCurr = CardServicesConstants.Elevance.SheetCurr,
+                            SheetIndex = CardServicesConstants.Elevance.SheetIndex
                         }
                     ];
 
-                     await ProcessReports(config, dataLayer, log, reportInfo);
+                    await ProcessReports(config, dataLayer, log, reportInfo);
 
                     log.LogInformation($"Opening the Excel file at {CardServicesConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -51,7 +51,7 @@ namespace CardServicesProcessor
 
                     log.LogInformation($"Building Email...");
                     sw.Restart();
-                    SendEmail(log);
+                    _ = SendEmail(log);
                     sw.Stop();
                     log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
@@ -79,7 +79,7 @@ namespace CardServicesProcessor
                 if (!CacheManager.Cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
                 {
                     // Data not found in cache, fetch from source and store in cache
-                    var parameters = new DynamicParameters();
+                    DynamicParameters parameters = new();
                     parameters.Add("@caseCategoryId", 1);
                     parameters.Add("@isActive", 1);
                     parameters.Add("@addressTypeCode", "PERM");
@@ -221,22 +221,18 @@ namespace CardServicesProcessor
             public int SheetIndex { get; set; }
         }
 
-        private async static Task Test()
+        private static async Task Test()
         {
             // Download the Excel file from the SharePoint link
-            string userName = "sankalp.godugu@nationsbenefits.com";
-            string password = "SG1234567$";
             string serverFileUrl = @"https://nationshearingllc-my.sharepoint.com/:x:/r/personal/mtapia_nationsbenefits_com/_layouts/15/doc2.aspx?sourcedoc=%7B60d2b296-9492-4cf5-ad89-27bb8b4c4b24%7D&action=edit&wdorigin=BrowserReload.Sharing.ServerTransfer&wdexp=TEAMS-TREATMENT&wdhostclicktime=1712151738068&wdenableroaming=1&wdodb=1&wdlcid=en-US&wdredirectionreason=Force_SingleStepBoot&wdinitialsession=4387785d-830d-c980-5510-e324be4eb0cd&wdrldsc=6&wdrldc=2&wdrldr=FileOpenUserUnauthorized%2CDeploymentInvalidEditSess";
-            string downloadPath = @"C:\Users\Sankalp.Godugu\Downloads\ManualAdjustments2023.xlsx";
-
-            var webUrl = "https://nationshearingllc-my.sharepoint.com/:x:/r/personal/mtapia_nationsbenefits_com";
-            var fileUrl = serverFileUrl;
-            var accessToken = "your-access-token"; // Ensure you acquire an OAuth token as per SharePoint's requirements
-            using var client = new HttpClient();
+            string webUrl = "https://nationshearingllc-my.sharepoint.com/:x:/r/personal/mtapia_nationsbenefits_com";
+            string fileUrl = serverFileUrl;
+            string accessToken = "your-access-token"; // Ensure you acquire an OAuth token as per SharePoint's requirements
+            using HttpClient client = new();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            var requestUrl = $"{webUrl}/_api/web/getfilebyserverrelativeurl('{fileUrl}')/$value";
-            var response = await client.GetAsync(requestUrl, HttpCompletionOption.ResponseHeadersRead);
-            var fileContent = await response.Content.ReadAsByteArrayAsync();
+            string requestUrl = $"{webUrl}/_api/web/getfilebyserverrelativeurl('{fileUrl}')/$value";
+            HttpResponseMessage response = await client.GetAsync(requestUrl, HttpCompletionOption.ResponseHeadersRead);
+            byte[] fileContent = await response.Content.ReadAsByteArrayAsync();
             //return File(fileContent, "application/octet-stream", "your-download-file-name");
         }
     }

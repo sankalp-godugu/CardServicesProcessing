@@ -12,19 +12,19 @@
 
         public static readonly string TestFilePath = @"C:\Users\Sankalp.Godugu\OneDrive - NationsBenefits\Documents\Business\Case Management\Reimbursement\TestPurposesOnly.xlsx";
 
-        public static class Elevance
-        {
-            public static readonly string SheetName = typeof(Elevance).Name;
-            public static readonly string SheetPrev = "Elevance Reimbursements";
-            public static readonly string SheetCurr = "Elevance";
-            public static readonly int SheetIndex = 1;
-        }
-
         public static class Nations
         {
             public static readonly string SheetName = typeof(Nations).Name;
             public static readonly string SheetPrev = "Nations Reimbursements";
             public static readonly string SheetCurr = "Nations";
+            public static readonly int SheetIndex = 1;
+        }
+
+        public static class Elevance
+        {
+            public static readonly string SheetName = typeof(Elevance).Name;
+            public static readonly string SheetPrev = "Elevance Reimbursements";
+            public static readonly string SheetCurr = "Elevance";
             public static readonly int SheetIndex = 2;
         }
 

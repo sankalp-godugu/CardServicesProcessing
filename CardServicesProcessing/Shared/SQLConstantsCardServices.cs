@@ -5,7 +5,7 @@
         public static readonly string DropTblAllCases = @"DROP TABLE IF EXISTS #AllCSCases;";
         public static readonly string DropTblMemberInsuranceMax = @"DROP TABLE IF EXISTS #MemberInsuranceMax;";
         public static readonly string DropTblReimbursementAmount = @"DROP TABLE IF EXISTS #ReimbursementAmount;";
-		public static readonly string SelectIntoTblAllCases = @"
+        public static readonly string SelectIntoTblAllCases = @"
 			SELECT
 					ic.InsuranceCarrierName,
 					mc.CaseID,

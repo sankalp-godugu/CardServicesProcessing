@@ -77,7 +77,7 @@ namespace CardServicesProcessor.DataAccess.Services
                                     + SQLConstantsCardServices.SelectIntoTblMemberInsuranceMax
                                     + SQLConstantsCardServices.SelectIntoTblReimbursementAmount
                                     + SQLConstantsCardServices.SelectFromTblCases;
-                
+
                 IEnumerable<T> result = await QuerySqlAndLogMetricAsync<T>(connection, combinedSql, transaction, log, parameters);
                 return result;
             }

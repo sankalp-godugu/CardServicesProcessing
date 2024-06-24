@@ -43,7 +43,7 @@ namespace CardServicesProcessor
 
                     log.LogInformation($"Started Building Email...");
                     sw.Restart();
-                    SendEmail(log);
+                    _ = SendEmail(log);
                     sw.Stop();
                     log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
                 });
@@ -74,7 +74,7 @@ namespace CardServicesProcessor
                 sw.Start();
                 if (!CacheManager.Cache.TryGetValue($"{report.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
                 {
-                    var parameters = new DynamicParameters();
+                    DynamicParameters parameters = new();
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@approvedStatus", "Approved");
                     parameters.Add("@transactionStatus", "success");
