@@ -21,7 +21,7 @@ namespace CardServicesProcessor
             {
                 await Task.Run(async () =>
                 {
-                    List<Report> reportInfo =
+                    List<Client> clients =
                     [
                         new()
                         {
@@ -33,7 +33,7 @@ namespace CardServicesProcessor
                         }
                     ];
 
-                    await ProcessReports(config, dataLayer, log, reportInfo);
+                    await ProcessReports(config, dataLayer, log, clients);
 
                     log.LogInformation($"Opening the Excel file at {CheckIssuanceConstants.FilePathCurr}...");
                     Stopwatch sw = Stopwatch.StartNew();
@@ -57,61 +57,47 @@ namespace CardServicesProcessor
             }
         }
 
-        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<Report> reportInfo)
+        private static async Task ProcessReports(IConfiguration config, IDataLayer dataLayer, ILogger log, List<Client> reportInfo)
         {
             ExcelService.DeleteWorkbook(CheckIssuanceConstants.FilePathCurr);
 
-            foreach (Report report in reportInfo)
+            foreach (Client report in reportInfo)
             {
                 Stopwatch sw = new();
 
-                log.LogInformation($"{report.SheetName} > Processing data");
+                log.LogInformation($"****************** {report.SheetName} **********************");
 
                 //TODO: replace with PROD string
                 string conn = GetConnString(config, $"{report.SheetName}ProdConn");
 
-                log.LogInformation($"{report.SheetName} > Getting all approved reimbursements");
+                log.LogInformation($"Getting all approved reimbursements...");
                 sw.Start();
-                if (!CacheManager.Cache.TryGetValue($"{report.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
-                {
+                //if (!CacheManager.Cache.TryGetValue($"{report.SheetName}CheckIssuance", out CheckIssuance? dataCurr))
+                //{
                     DynamicParameters parameters = new();
                     parameters.Add("@caseTopicId", 24);
                     parameters.Add("@approvedStatus", "Approved");
                     parameters.Add("@transactionStatus", "success");
-                    parameters.Add("@fromDate", DateTime.Now.AddDays(-7).Date);
-                    parameters.Add("@isCheckSent", 0);
-                    dataCurr = await dataLayer.QueryReimbursements<CheckIssuance>(conn, log, parameters);
-                    _ = CacheManager.Cache.Set($"{report.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
-                }
+                    //parameters.Add("@fromDate", DateTime.Now.AddDays(-7).Date);
+                    //parameters.Add("@isCheckSent", 0);
+                    CheckIssuance dataCurr = await dataLayer.QueryReimbursements<CheckIssuance>(conn, log, parameters);
+                    //_ = CacheManager.Cache.Set($"{report.SheetName}CheckIssuance", dataCurr, TimeSpan.FromDays(1));
+                //}
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{report.SheetName} > Adding data to Excel");
+                //log.LogInformation($"Checking for duplicates...");
+                //sw.Restart();
+
+                //sw.Stop();
+                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+
+                log.LogInformation($"Adding data to Excel...");
                 sw.Restart();
-                ExcelService.AddToExcel<CheckIssuance>(dataCurr);
+                ExcelService.AddToExcel(dataCurr);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
             }
-        }
-
-        private static string GetConnString(IConfiguration config, string key)
-        {
-            string defaultConn = "Data Source=tcp:nbappproddr.database.windows.net;Initial Catalog=NBAPP_PROD;Authentication=Active Directory Interactive;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadOnly;MultiSubnetFailover=False;MultipleActiveResultSets=true";
-
-            return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
-        }
-
-        private static string GetTestConnString(IConfiguration config, string key)
-        {
-            string defaultConn = "Data Source=tcp:nhonlineordersql.database.windows.net;Initial Catalog=NHCRM_TEST3;Authentication=Active Directory Interactive;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadOnly;MultiSubnetFailover=False;MultipleActiveResultSets=true";
-
-            return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
-        }
-
-        private class Report
-        {
-            public string? SheetName { get; set; }
-            public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.SheetIndexToNameMap;
         }
 
         public static int SendEmail(ILogger log)
@@ -126,8 +112,8 @@ namespace CardServicesProcessor
 
             using SmtpClient client = new(smtpServer, smtpPort)
             {
-                EnableSsl = true,
                 Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = true,
                 Timeout = LimitConstants.Timeout
             };
 
@@ -137,10 +123,16 @@ namespace CardServicesProcessor
             {
                 IsBodyHtml = false
             };
+            //message.Headers.Add("In-Reply-To", "BN8PR15MB26738CB9A4FEFD4454B3D0639ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("References", "BN8PR15MB26738CB9A4FEFD4454B3D0639ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("In-Reply-To", "BN8PR15MB2673CF16E4FF3CCF733640149ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("References", "BN8PR15MB2673CF16E4FF3CCF733640149ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
             //message.CC.Add(EmailConstants.MichaelDucker);
+            //message.CC.Add(EmailConstants.ScottParker);
             //message.CC.Add(EmailConstants.DaveDandridge);
             //message.CC.Add(EmailConstants.MargaretAnnTapia);
             //message.CC.Add(EmailConstants.VijayanRayan);
+            message.CC.Add(EmailConstants.AustinStephensTest);
 
             Attachment attachment = new(CheckIssuanceConstants.FilePathCurr);
             message.Attachments.Add(attachment);
@@ -154,10 +146,6 @@ namespace CardServicesProcessor
                     client.Send(message);
                     log.LogInformation("Email sent successfully.");
                     break;
-                }
-                catch (SmtpException)
-                {
-                    log.LogInformation($"Sending email timed out.");
                 }
                 catch (Exception ex)
                 {
@@ -175,12 +163,31 @@ namespace CardServicesProcessor
             return @$"
             Hi Xiaosen,
 
-            Please see attached reimbursement report for this week:
-            {CheckIssuanceConstants.FilePathCurr}
+            Please see attached reimbursement report for this week.
 
             Kind regards,
             Sankalp Godugu
             ";
+        }
+
+        private static string GetConnString(IConfiguration config, string key)
+        {
+            string defaultConn = "Data Source=tcp:nbappproddr.database.windows.net;Initial Catalog=NBAPP_PROD;Authentication=Active Directory Interactive;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadOnly;MultiSubnetFailover=False;MultipleActiveResultSets=true";
+
+            return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
+        }
+
+        private static string GetTestConnString(IConfiguration config, string key)
+        {
+            string defaultConn = "Data Source=tcp:nhonlineordersql.database.windows.net;Initial Catalog=NHCRM_TEST3;Authentication=Active Directory Interactive;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadOnly;MultiSubnetFailover=False;MultipleActiveResultSets=true";
+
+            return config[key] ?? Environment.GetEnvironmentVariable(key) ?? defaultConn;
+        }
+
+        private class Client
+        {
+            public string? SheetName { get; set; }
+            public readonly Dictionary<int, string> Sheets = CheckIssuanceConstants.SheetIndexToNameMap;
         }
     }
 }

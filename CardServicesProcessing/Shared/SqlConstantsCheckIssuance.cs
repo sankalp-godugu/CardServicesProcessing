@@ -11,6 +11,12 @@
         public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS #ReimbursementFinal;";
         public static readonly string DropMemberMailingInfo = @"DROP TABLE IF EXISTS #MemberMailingInfo;";
         public static readonly string DropMemberCheckReimbursement = @"DROP TABLE IF EXISTS #MemberCheckReimbursement;";
+		public static readonly string DeclareVars = @"
+DECLARE @DateTime DATETIME = GETDATE();
+DECLARE @LastWednesday DATETIME;
+
+SET @LastWednesday = CAST(DATEADD(day, -(3+@@DATEFIRST+DATEPART(weekday,@DateTime-'00:00'))%7, 
+CAST(@DateTime-'00:00' AS DATE)) AS DATETIME)+'00:00';";
         public static readonly string SelectIntoReimbursementPayments = @"
             SELECT
 	            mc.NHMemberID,
@@ -37,9 +43,8 @@
 	        AND		CaseTicketStatusID IN (9,3)
 	        AND		ApprovedStatus = @approvedStatus
 			AND		TransactionStatus = @transactionStatus
-			AND		bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' between
-						DATEADD(DAY, -((DATEPART(WEEKDAY, GETDATE()) + 2) % 7 + 3), GETDATE())
-						and DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) % 7 + 1), GETDATE())
+			AND		bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' >= @LastWednesday AT TIME ZONE 'Eastern Standard Time'
+			--TEMP
 	        --AND	bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' > @fromDate;
 			--AND	mct.CaseNumber NOT IN ('')
 			--AND	IsCheckSent = 0;";
@@ -290,8 +295,17 @@ GROUP BY
 	VendorName,
 	RequestDate,
 	TxnID;";
+        public static readonly string SelectIntoMembersWithMultipleAddresses = @"SELECT
+	[Vendor Name],
+	COUNT(DISTINCT CONCAT([Address 1], '|', [Address 2], '|', [Address 3])) AS Unique_Address_Count
+from #reimbursement_final
+GROUP BY [Vendor Name]
+HAVING COUNT(DISTINCT CONCAT([Address 1], '|', [Address 2], '|', [Address 3])) > 1
+ORDER BY Unique_Address_Count desc";
         public static readonly string SelectRawData = @"SELECT * FROM #ReimbursementFinal ORDER BY NHMemberID;";
         public static readonly string SelectMemberMailingInfo = @"SELECT * FROM #MemberMailingInfo ORDER BY CardholderFirstName;";
         public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM #MemberCheckReimbursement ORDER BY VendorName;";
+
+		
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Diagnostics;
 using System.Reflection;
+using static Dapper.SqlMapper;
 
 namespace CardServicesProcessor.DataAccess.Services
 {
@@ -119,43 +120,41 @@ namespace CardServicesProcessor.DataAccess.Services
                                     + SqlConstantsCheckIssuance.DropReimbursementFinal
                                     + SqlConstantsCheckIssuance.DropMemberMailingInfo
                                     + SqlConstantsCheckIssuance.DropMemberCheckReimbursement
+                                    + SqlConstantsCheckIssuance.DeclareVars
                                     + SqlConstantsCheckIssuance.SelectIntoReimbursementPayments
-                                    + connection.Database == Databases.Nations
+                                    + (connection.Database == Databases.Nations
                                         ? SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_NAT
-                                        : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV
+                                        : SqlConstantsCheckIssuance.SelectIntoReimbursementAddress1_ELV)
                                     + SqlConstantsCheckIssuance.SelectIntoReimbursementAddress2
                                     + SqlConstantsCheckIssuance.SelectIntoReimbursementAddress3
                                     + SqlConstantsCheckIssuance.SelectIntoTempFinal
                                     + SqlConstantsCheckIssuance.SelectIntoReimbursementFinal
                                     + SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo
-                                    + SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement;
+                                    + SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement
+                                    + SqlConstantsCheckIssuance.SelectRawData
+                                    + SqlConstantsCheckIssuance.SelectMemberMailingInfo
+                                    + SqlConstantsCheckIssuance.SelectMemberCheckReimbursement;
 
-                await ExecuteSqlAndLogMetricAsync(connection, combinedSql, transaction, log, parameters);
-
-                IEnumerable<RawData> rawData = await QuerySqlAndLogMetricAsync<RawData>(connection, SqlConstantsCheckIssuance.SelectRawData, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectRawData));
-
-                IEnumerable<MemberMailingInfo> memberMailingInfo = await QuerySqlAndLogMetricAsync<MemberMailingInfo>(connection, SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectIntoMemberMailingInfo));
-
-                IEnumerable<MemberCheckReimbursement> memberCheckReimbursements = await QuerySqlAndLogMetricAsync<MemberCheckReimbursement>(connection, SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement, transaction, log, parameters, nameof(SqlConstantsCheckIssuance.SelectIntoMemberCheckReimbursement));
+                var result = await QuerySqlAndLogMetricMultipleAsync(connection, combinedSql, transaction, log, parameters);
 
                 return new CheckIssuance
                 {
-                    RawData = rawData,
-                    MemberMailingInfos = memberMailingInfo,
-                    MemberCheckReimbursements = memberCheckReimbursements
+                    RawData = await result.ReadAsync<RawData>(),
+                    MemberMailingInfos = await result.ReadAsync<MemberMailingInfo>(),
+                    MemberCheckReimbursements = await result.ReadAsync<MemberCheckReimbursement>()
                 };
             }
             catch (SqlException ex)
             {
                 log.LogInformation($"SqlException occurred: " +
-                $"\nMessage: {ex.Message}\n" +
-                $"\nProcedure: {ex.Procedure}\n" +
-                $"\nLine Number: {ex.LineNumber}\n" +
-                $"\nServer: {ex.Server}\n" +
-                $"\nClass: {ex.Class}\n" +
-                $"\nNumber: {ex.Number}\n" +
-                $"\nState: {ex.State}\n" +
-                $"\nSource: {ex.Source}\n" +
+                $"\nMessage: {ex.Message}" +
+                $"\nProcedure: {ex.Procedure}" +
+                $"\nLine Number: {ex.LineNumber}" +
+                $"\nServer: {ex.Server}" +
+                $"\nClass: {ex.Class}" +
+                $"\nNumber: {ex.Number}" +
+                $"\nState: {ex.State}" +
+                $"\nSource: {ex.Source}" +
                 $"\nStackTrace: {ex.StackTrace}");
                 throw;
             }
@@ -198,7 +197,18 @@ namespace CardServicesProcessor.DataAccess.Services
         {
             //log.LogInformation($"{queryName} > Running...");
             Stopwatch sw = Stopwatch.StartNew();
-            IEnumerable<T> result = await connection.QueryAsync<T>(sqlCommand, parameters, transaction);
+            IEnumerable<T> result = await connection.QueryAsync<T>(sqlCommand, parameters, transaction, LimitConstants.SqlTimeout);
+            sw.Stop();
+            log.LogInformation($"{queryName} > {sw.Elapsed.TotalSeconds} sec");
+            return result;
+        }
+
+        public static async Task<GridReader> QuerySqlAndLogMetricMultipleAsync(IDbConnection connection, string sqlCommand, IDbTransaction transaction, ILogger log, DynamicParameters? parameters = null, string? queryName = null)
+        {
+            //log.LogInformation($"{queryName} > Running...");
+            Stopwatch sw = Stopwatch.StartNew();
+            GridReader result = await connection.QueryMultipleAsync(sqlCommand, parameters, transaction, LimitConstants.SqlTimeout);
+            sw.Stop();
             log.LogInformation($"{queryName} > {sw.Elapsed.TotalSeconds} sec");
             return result;
         }

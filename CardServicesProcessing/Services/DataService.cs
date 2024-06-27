@@ -10,7 +10,7 @@ using Path = System.IO.Path;
 
 namespace CardServicesProcessor.Services
 {
-    public static partial class DataProcessingService
+    public static partial class DataService
     {
         [GeneratedRegex(@"\$(\d+(?:\.\d{1,2})?)")]
         private static partial Regex ApprovedAmountRegex();

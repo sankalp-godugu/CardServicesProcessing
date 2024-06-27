@@ -70,10 +70,12 @@ namespace CardServicesProcessor
         {
             foreach (Report settings in reports)
             {
+                log.LogInformation($"****************** {settings.SheetName} ******************");
+                
                 Stopwatch sw = new();
                 string conn = GetConnectionString(config, $"{settings.SheetName}ProdConn");
 
-                log.LogInformation($"{settings.SheetName} > Querying for cases...");
+                log.LogInformation($"Querying for cases...");
                 sw.Start();
                 // Check if data exists in cache
                 if (!CacheManager.Cache.TryGetValue(settings.SheetName, out IEnumerable<CardServicesResponse> response))
@@ -93,43 +95,43 @@ namespace CardServicesProcessor
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Processing missing/invalid data...");
+                log.LogInformation($"Processing missing/invalid data...");
                 sw.Restart();
-                DataTable tblCurr = DataProcessingService.ValidateCases(response);
+                DataTable tblCurr = DataService.ValidateCases(response);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2023 Manual Reimbursements Report...");
+                //log.LogInformation($"Cross-referencing data with 2023 Manual Reimbursements Report...");
                 //sw.Restart();
                 //DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2023SrcFilePath, tblCurr);
                 //sw.Stop();
                 //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                //log.LogInformation($"{settings.SheetName} > Cross-referencing data with 2024 Manual Reimbursements Report...");
+                //log.LogInformation($"Cross-referencing data with 2024 Manual Reimbursements Report...");
                 //sw.Restart();
                 //DataProcessingService.FillMissingInfoFromManualReimbursementReport(CardServicesConstants.ManualReimbursements2024SrcFilePath, tblCurr);
                 //sw.Stop();
                 //log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
+                log.LogInformation($"Getting Reimbursement Product Names by Case Number...");
                 sw.Restart();
                 IEnumerable<ReimbursementItem> reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
+                log.LogInformation($"Populating Missing Wallet Names by Checking Reimbursed Products...");
                 sw.Restart();
-                DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
+                DataService.FillInMissingWallets(tblCurr, reimbursementItems);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Removing Duplicates...");
+                log.LogInformation($"Removing Duplicates...");
                 sw.Restart();
-                DataProcessingService.RemoveDuplicates(tblCurr, ColumnNames.CaseTicketNumber);
+                DataService.RemoveDuplicates(tblCurr, ColumnNames.CaseTicketNumber);
                 sw.Stop();
                 log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Writing to Excel and applying filters...");
+                log.LogInformation($"Writing to Excel and applying filters...");
                 sw.Restart();
                 ExcelService.ApplyFiltersAndSaveReport(tblCurr, CardServicesConstants.FilePathCurr, settings.SheetCurr, settings.SheetIndex, log);
                 sw.Stop();
@@ -160,11 +162,13 @@ namespace CardServicesProcessor
             {
                 IsBodyHtml = false
             };
-            //message.Headers.Add("In-Reply-To", );
-            //message.Headers.Add("References", )
+            //message.Headers.Add("In-Reply-To", "BN8PR15MB26738CB9A4FEFD4454B3D0639ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("References", "BN8PR15MB26738CB9A4FEFD4454B3D0639ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("In-Reply-To", "BN8PR15MB2673CF16E4FF3CCF733640149ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
+            //message.Headers.Add("References", "BN8PR15MB2673CF16E4FF3CCF733640149ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
             //message.CC.Add(EmailConstants.DaveDandridge);
             //message.CC.Add(EmailConstants.MargaretAnnTapia);
-            //message.CC.Add(EmailConstants.AustinStephens);
+            message.CC.Add(EmailConstants.AustinStephensTest);
 
             Attachment attachment = new(CardServicesConstants.FilePathCurr);
             message.Attachments.Add(attachment);
@@ -195,8 +199,7 @@ namespace CardServicesProcessor
             return @$"
             Hi Dave,
 
-            Please see attached reimbursement report for this week:
-            {CardServicesConstants.FilePathCurr}
+            Please see attached reimbursement report for this week.
 
             Kind regards,
             Sankalp Godugu

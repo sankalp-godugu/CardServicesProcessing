@@ -22,7 +22,7 @@ namespace CardServicesProcessor.Services
         {
             DataTable dataTable = new();
 
-            using XLWorkbook workbook = new(filePath);
+            var workbook = CreateWorkbook(filePath);
             IXLWorksheet worksheet = workbook.Worksheet(worksheetName) ?? throw new ArgumentException($"Worksheet '{worksheetName}' not found in the Excel file.");
 
             // Get the headers from the first row
@@ -478,7 +478,7 @@ namespace CardServicesProcessor.Services
 
         private static void AddDataToWorksheet<T>(T dt, XLWorkbook workbook, string sheetName) where T : DataTable
         {
-            DataTable dtPrev = ReadWorksheetToDataTable(CheckIssuanceConstants.FilePathPrev, sheetName);
+            //DataTable dtPrev = ReadWorksheetToDataTable(CheckIssuanceConstants.FilePathPrev, sheetName);
             IXLWorksheet worksheet = CreateWorksheet(workbook, sheetName);
 
             // Find the first empty row in the worksheet
@@ -487,7 +487,7 @@ namespace CardServicesProcessor.Services
             // Insert the data into the worksheet starting from the next empty row
             _ = worksheet.Tables.FirstOrDefault();
 
-            InsertIntoExcelWithComparison(dt, worksheet, dtPrev);
+            InsertIntoExcelWithComparison(worksheet, dt, null);
         }
 
         public static IXLWorksheet CreateWorksheet(XLWorkbook workbook, string sheetName, int sheetPos = 1)
@@ -503,7 +503,7 @@ namespace CardServicesProcessor.Services
             return worksheet;
         }
 
-        public static void InsertIntoExcelWithComparison(DataTable sourceDataTable, IXLWorksheet worksheet, DataTable comparisonDataTable)
+        public static void InsertIntoExcelWithComparison(IXLWorksheet worksheet, DataTable sourceDataTable, DataTable comparisonDataTable)
         {
             string columnName = worksheet.Name switch
             {
@@ -521,15 +521,19 @@ namespace CardServicesProcessor.Services
             {
                 // Perform your comparison with the values in the comparison DataTable
                 bool shouldInsert = true;
-                foreach (DataRow comparisonRow in comparisonDataTable.Rows)
+
+                if (comparisonDataTable is not null)
                 {
-                    // Compare values from source and comparison rows
-                    // Example: If sourceRow["ColumnName"] matches comparisonRow["ColumnName"], then set shouldInsert to false
-                    // Adjust the comparison logic based on your specific requirements
-                    if (sourceRow[columnName].Equals(comparisonRow[columnName]))
+                    foreach (DataRow comparisonRow in comparisonDataTable.Rows)
                     {
-                        shouldInsert = false;
-                        break; // No need to continue looping through comparison rows if a match is found
+                        // Compare values from source and comparison rows
+                        // Example: If sourceRow["ColumnName"] matches comparisonRow["ColumnName"], then set shouldInsert to false
+                        // Adjust the comparison logic based on your specific requirements
+                        if (sourceRow[columnName].Equals(comparisonRow[columnName]))
+                        {
+                            shouldInsert = false;
+                            break; // No need to continue looping through comparison rows if a match is found
+                        }
                     }
                 }
 
