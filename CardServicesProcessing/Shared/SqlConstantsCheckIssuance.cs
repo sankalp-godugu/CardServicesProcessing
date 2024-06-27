@@ -11,10 +11,11 @@
         public static readonly string DropReimbursementFinal = @"DROP TABLE IF EXISTS #ReimbursementFinal;";
         public static readonly string DropMemberMailingInfo = @"DROP TABLE IF EXISTS #MemberMailingInfo;";
         public static readonly string DropMemberCheckReimbursement = @"DROP TABLE IF EXISTS #MemberCheckReimbursement;";
-		public static readonly string DeclareVars = @"
+		public static readonly string DropMembersWithMultipleAddresses = @"DROP TABLE IF EXISTS #membersMultipleAddresses";
+
+        public static readonly string DeclareVars = @"
 DECLARE @DateTime DATETIME = GETDATE();
 DECLARE @LastWednesday DATETIME;
-
 SET @LastWednesday = CAST(DATEADD(day, -(3+@@DATEFIRST+DATEPART(weekday,@DateTime-'00:00'))%7, 
 CAST(@DateTime-'00:00' AS DATE)) AS DATETIME)+'00:00';";
         public static readonly string SelectIntoReimbursementPayments = @"
@@ -35,11 +36,12 @@ CAST(@DateTime-'00:00' AS DATE)) AS DATETIME)+'00:00';";
 	            CONVERT(VARCHAR, bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time', 110) AS RequestDate
 	        INTO	#ReimbursementPayments
 	        FROM	ServiceRequest.MemberCaseTickets mct
-	        JOIN	ServiceRequest.MemberCases mc ON mct.CaseID=mc.CaseID
+	        JOIN	ServiceRequest.MemberCases mc ON mct.CaseID = mc.CaseID
 	        JOIN	PaymentGateway.BenefitManagement bm WITH(NOLOCK)
-						ON bm.NHMemberID=mc.NHMemberID
+						ON bm.NHMemberID = mc.NHMemberID
 						AND bm.TxnGroupReferenceID = mc.CaseNumber
-	        WHERE	CaseTopicID = @caseTopicId
+	        WHERE 1 = 1
+			AND		CaseTopicID = @caseTopicId
 	        AND		CaseTicketStatusID IN (9,3)
 	        AND		ApprovedStatus = @approvedStatus
 			AND		TransactionStatus = @transactionStatus
@@ -77,7 +79,8 @@ LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
 LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
 LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
 JOIN master.Addresses a ON a.MemberID = mm.MemberID
-WHERE ih.IsActive = 1
+WHERE 1 = 1
+	AND ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
 	AND ic.InsuranceCarrierID NOT IN (141, 270, 302)
@@ -144,8 +147,8 @@ LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.Insurance
 LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
 JOIN master.Addresses a ON a.MemberID = mm.MemberID
 JOIN #ReimbursementPayments rp ON c.NHMemberID = rp.nhmemberid
-WHERE
-	ih.IsActive = 1
+WHERE 1 = 1
+	AND	ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
 	AND ih.HealthPlanNumber IS NOT NULL
@@ -178,9 +181,10 @@ Left join fisxtract.NonMonetary m ON m.PANProxyNumber = c.CardReferenceNumber
 LEFT JOIN master.Members mm ON c.NHMemberID = mm.NHMemberID
 LEFT JOIN master.MemberInsurances mi ON mi.MemberID = mm.MemberID
 LEFT JOIN Insurance.InsuranceCarriers ic ON ic.InsuranceCarrierID = mi.InsuranceCarrierID
-LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID=mi.InsuranceHealthPlanID
+LEFT JOIN Insurance.InsuranceHealthPlans ih ON ih.InsuranceHealthPlanID = mi.InsuranceHealthPlanID
 JOIN master.Addresses a ON a.MemberID = mm.MemberID
-WHERE ih.IsActive = 1
+WHERE 1 = 1
+	AND	ih.IsActive = 1
 	AND ic.IsActive = 1
 	AND c.IsActive = 1
 	AND ih.HealthPlanNumber IS NOT NULL
@@ -219,8 +223,8 @@ SELECT
 	END AS AddressTypeCode
 INTO #TempFinal
 FROM #ReimbursementAddress1 ra1
-LEFT JOIN #ReimbursementAddress2 ra2 ON ra1.txnreferenceid=ra2.txnreferenceid
-LEFT JOIN #ReimbursementAddress3 ra3 ON ra1.txnreferenceid=ra3.txnreferenceid;";
+LEFT JOIN #ReimbursementAddress2 ra2 ON ra1.txnreferenceid = ra2.txnreferenceid
+LEFT JOIN #ReimbursementAddress3 ra3 ON ra1.txnreferenceid = ra3.txnreferenceid;";
         public static readonly string SelectIntoReimbursementFinal = @" 
 SELECT 
 	t.NHMemberID, 
@@ -296,16 +300,14 @@ GROUP BY
 	RequestDate,
 	TxnID;";
         public static readonly string SelectIntoMembersWithMultipleAddresses = @"SELECT
-	[Vendor Name],
-	COUNT(DISTINCT CONCAT([Address 1], '|', [Address 2], '|', [Address 3])) AS Unique_Address_Count
+	VendorName,
+	COUNT(DISTINCT CONCAT(Address1, '|', Address2, '|', Address3)) AS UniqueAddressCount
 from #reimbursement_final
-GROUP BY [Vendor Name]
-HAVING COUNT(DISTINCT CONCAT([Address 1], '|', [Address 2], '|', [Address 3])) > 1
-ORDER BY Unique_Address_Count desc";
+GROUP BY VendorName
+HAVING COUNT(DISTINCT CONCAT(Address1, '|', Address2, '|', Address3)) > 1
+ORDER BY UniqueAddressCount desc";
         public static readonly string SelectRawData = @"SELECT * FROM #ReimbursementFinal ORDER BY NHMemberID;";
         public static readonly string SelectMemberMailingInfo = @"SELECT * FROM #MemberMailingInfo ORDER BY CardholderFirstName;";
         public static readonly string SelectMemberCheckReimbursement = @"SELECT * FROM #MemberCheckReimbursement ORDER BY VendorName;";
-
-		
     }
 }
