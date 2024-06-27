@@ -112,17 +112,17 @@ namespace CardServicesProcessor
                 //sw.Stop();
                 //log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
-                sw.Restart();
-                IEnumerable<ReimbursementItem> reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
-                sw.Stop();
-                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                //log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
+                //sw.Restart();
+                //IEnumerable<ReimbursementItem> reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
+                //sw.Stop();
+                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
-                sw.Restart();
-                DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
-                sw.Stop();
-                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                //log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
+                //sw.Restart();
+                //DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
+                //sw.Stop();
+                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 log.LogInformation($"{settings.SheetName} > Removing Duplicates...");
                 sw.Restart();
@@ -177,10 +177,6 @@ namespace CardServicesProcessor
                     client.Send(message);
                     log.LogInformation("Email sent successfully.");
                     break;
-                }
-                catch (SmtpException)
-                {
-                    log.LogInformation($"Sending email timed out.");
                 }
                 catch (Exception ex)
                 {

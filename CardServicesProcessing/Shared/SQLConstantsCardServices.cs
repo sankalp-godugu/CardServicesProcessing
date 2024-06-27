@@ -53,10 +53,10 @@
 			AND		LastName NOT LIKE '%test%'
 			AND		mc.IsActive = @isActive
 			AND		addr.AddressTypeCode = @addressTypeCode
-			--TEMP
+			AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) in (@createdYear)
 			AND		mct.CaseTopicID = @caseTopicId
-			AND		ic.InsuranceCarrierId = 270
-			--AND		YEAR(CONVERT(DATETIME, mct.CreateDate AT TIME ZONE 'Eastern Standard Time')) in (@createdYear)
+			--TEMP
+			--AND		ic.InsuranceCarrierId = 270
 			--OR		YEAR(CONVERT(DATETIME, mct.ClosedDate AT TIME ZONE 'Eastern Standard Time')) = @closedYear);";
         public static readonly string SelectIntoTblMemberInsuranceMax = @"
             SELECT		MAX(mi.CreateDate) AS CreateDate,

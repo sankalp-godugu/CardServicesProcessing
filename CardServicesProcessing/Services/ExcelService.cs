@@ -214,12 +214,8 @@ namespace CardServicesProcessor.Services
         /// <param name="sheetPos"></param>
         public static void ApplyFiltersAndSaveReport(DataTable dataTable, string filePath, string sheetName, int sheetPos, ILogger log)
         {
-            // Check if the worksheet exists
-            //DeleteWorkbook(filePath);
-
             try
             {
-
                 XLWorkbook workbook = CreateWorkbook(filePath);
 
                 // Add a new worksheet with the same name
@@ -245,8 +241,11 @@ namespace CardServicesProcessor.Services
                 SetColumnWidths(worksheet);
 
                 // Apply filters to specific columns
-                ApplyFilters(worksheet, 14, "Reimbursement");
-                ApplyFilters(worksheet, 5, "2024");
+                SetColumnType(worksheet);
+
+                SortByCol(worksheet, 5);
+
+                FilterByCol(worksheet, 14);
 
                 SaveWorkbook(filePath, workbook);
             }
@@ -333,7 +332,7 @@ namespace CardServicesProcessor.Services
             return dataType switch
             {
                 XLDataType.Number => "$#,##0.00",
-                XLDataType.DateTime => "MM/dd/yyyy",
+                XLDataType.DateTime => "M/d/yyyy",
                 XLDataType.Text => "@",// General text format
                 _ => "",
             };
@@ -347,10 +346,38 @@ namespace CardServicesProcessor.Services
             }
         }
 
-        private static void ApplyFilters(IXLWorksheet worksheet, int columnIndex, string filterCriteria)
+        private static void SetColumnType(IXLWorksheet worksheet)
         {
             // Apply the filter to the specific column with the given criteria
-            _ = (worksheet.RangeUsed()?.SetAutoFilter().Column(columnIndex).AddFilter(filterCriteria));
+            var rangeUsed = worksheet.RangeUsed();
+
+            var colIndices = new int[] { 5, 6, 9, 23 };
+            var dataRows = rangeUsed.RowsUsed().Skip(1);
+
+            // Iterate through each row starting from the second row (assuming headers in the first row)
+            foreach (var row in dataRows) // Skip header row
+            {
+                foreach (var columnIndex in colIndices)
+                {
+                    var cell = row.Cell(columnIndex);
+                    if (DateTime.TryParse(cell.GetString(), out DateTime dateValue))
+                    {
+                        cell.Value = dateValue;
+                        cell.Style.DateFormat.Format = "M/d/yyyy";
+                    }
+                }
+            }
+        }
+
+        private static void SortByCol(IXLWorksheet worksheet, int colIndex)
+        {
+            worksheet.Range(2, 1, worksheet.LastRowUsed().RowNumber(), worksheet.LastColumnUsed().ColumnNumber()).Sort(colIndex);
+        }
+
+        private static void FilterByCol(IXLWorksheet worksheet, int colIndex)
+        {
+            worksheet.SetAutoFilter();//.Column(colIndex).AddFilter("Reimbursement");
+            //rangeUsed?.SetAutoFilter().Column(5).AddFilter(2024);
         }
 
         public static XLWorkbook CreateWorkbook(string filePath)

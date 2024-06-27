@@ -37,7 +37,10 @@
 	        AND		CaseTicketStatusID IN (9,3)
 	        AND		ApprovedStatus = @approvedStatus
 			AND		TransactionStatus = @transactionStatus
-	        AND		bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' > @fromDate;
+			AND		bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' between
+						DATEADD(DAY, -((DATEPART(WEEKDAY, GETDATE()) + 2) % 7 + 3), GETDATE())
+						and DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) % 7 + 1), GETDATE())
+	        --AND	bm.TxnResponseDate AT TIME ZONE 'Eastern Standard Time' > @fromDate;
 			--AND	mct.CaseNumber NOT IN ('')
 			--AND	IsCheckSent = 0;";
         public static readonly string SelectIntoReimbursementAddress1_NAT = @"
