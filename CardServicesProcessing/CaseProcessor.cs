@@ -80,14 +80,13 @@ namespace CardServicesProcessor
                 {
                     // Data not found in cache, fetch from source and store in cache
                     DynamicParameters parameters = new();
-                    parameters.Add("@caseCategoryId", 1);
-                    parameters.Add("@isActive", 1);
                     parameters.Add("@addressTypeCode", "PERM");
-                    parameters.Add("@caseTopicId", 24);
+                    parameters.Add("@caseCategoryId", 1);
                     parameters.Add("@createdYear", 2024);
-                    parameters.Add("@closedYear", 2024);
-                    parameters.Add("@carrierName", "Select Health");
+                    parameters.Add("@isActive", 1);
                     parameters.Add("@isProcessEligible", 1);
+                    parameters.Add("@caseTopicId", 24);
+                    parameters.Add("@closedYear", 2024);
                     response = await dataLayer.QueryAsyncCSS<CardServicesResponse>(conn, log, parameters);
                     _ = CacheManager.Cache.Set(settings.SheetName, response, TimeSpan.FromDays(1));
                 }
@@ -112,17 +111,17 @@ namespace CardServicesProcessor
                 //sw.Stop();
                 //log.LogInformation($"ElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                //log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
-                //sw.Restart();
-                //IEnumerable<ReimbursementItem> reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
-                //sw.Stop();
-                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                log.LogInformation($"{settings.SheetName} > Getting Reimbursement Product Names by Case Number...");
+                sw.Restart();
+                IEnumerable<ReimbursementItem> reimbursementItems = await dataLayer.QueryAsync<ReimbursementItem>(conn, SqlConstantsReimbursementItems.GetProductNames, log);
+                sw.Stop();
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
-                //log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
-                //sw.Restart();
-                //DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
-                //sw.Stop();
-                //log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
+                log.LogInformation($"{settings.SheetName} > Populating Missing Wallet Names by Checking Reimbursed Products...");
+                sw.Restart();
+                DataProcessingService.FillInMissingWallets(tblCurr, reimbursementItems);
+                sw.Stop();
+                log.LogInformation($"TotalElapsedTime: {sw.Elapsed.TotalSeconds} sec");
 
                 log.LogInformation($"{settings.SheetName} > Removing Duplicates...");
                 sw.Restart();
@@ -150,8 +149,8 @@ namespace CardServicesProcessor
 
             using SmtpClient client = new(smtpServer, smtpPort)
             {
-                EnableSsl = true,
                 Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = true,
                 Timeout = LimitConstants.Timeout
             };
 
@@ -161,6 +160,8 @@ namespace CardServicesProcessor
             {
                 IsBodyHtml = false
             };
+            //message.Headers.Add("In-Reply-To", );
+            //message.Headers.Add("References", )
             //message.CC.Add(EmailConstants.DaveDandridge);
             //message.CC.Add(EmailConstants.MargaretAnnTapia);
             //message.CC.Add(EmailConstants.AustinStephens);
