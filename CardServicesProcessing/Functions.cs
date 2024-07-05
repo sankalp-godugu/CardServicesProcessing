@@ -15,11 +15,11 @@ namespace CardServicesProcessor
             _ = await CaseProcessor.ProcessAllCases(configuration, dataLayer, logger);
         }
 
-        [Function("CheckIssuanceProcessor")]
-        //public async Task GenerateReimbursementCheckIssuance([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
-        public async Task GenerateReimbursementCheckIssuance([HttpTrigger(AuthorizationLevel.Anonymous, "GET", "POST", Route = null)] HttpRequest req)
-        {
-            _ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger);
-        }
+        // [Function("CheckIssuanceProcessor")]
+        // //public async Task GenerateReimbursementCheckIssuance([TimerTrigger("* * * * 1 *", RunOnStartup = true)] TimerInfo myTimer)
+        // public async Task GenerateReimbursementCheckIssuance([HttpTrigger(AuthorizationLevel.Anonymous, "GET", "POST", Route = null)] HttpRequest req)
+        // {
+        //     _ = await CheckIssuanceProcessor.ProcessCheckIssuance(configuration, dataLayer, logger);
+        // }
     }
 }
