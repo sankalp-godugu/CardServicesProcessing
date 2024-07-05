@@ -146,7 +146,7 @@ namespace CardServicesProcessor
             string smtpUsername = Environment.GetEnvironmentVariable("smtpUsername");
             string smtpPassword = Environment.GetEnvironmentVariable("smtpPassword");
             string fromAddress = EmailConstants.DoNotReply;
-            string toAddress = EmailConstants.SankalpGodugu;// EmailConstants.DavidDandridge;
+            string toAddress = EmailConstants.SabriAttalla;// EmailConstants.DavidDandridge;
             string subject = CardServicesConstants.Subject;
 
             using SmtpClient client = new(smtpServer, smtpPort)
@@ -168,7 +168,7 @@ namespace CardServicesProcessor
             //message.Headers.Add("References", "BN8PR15MB2673CF16E4FF3CCF733640149ED72@BN8PR15MB2673.namprd15.prod.outlook.com");
             //message.CC.Add(EmailConstants.DaveDandridge);
             //message.CC.Add(EmailConstants.MargaretAnnTapia);
-            message.CC.Add(EmailConstants.AustinStephensTest);
+            //message.CC.Add(EmailConstants.AustinStephensTest);
 
             Attachment attachment = new(CardServicesConstants.FilePathCurr);
             message.Attachments.Add(attachment);
